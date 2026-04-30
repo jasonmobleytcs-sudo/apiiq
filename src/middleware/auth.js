@@ -1,7 +1,10 @@
 const db = require('../db');
 
 function requireApiKey(req, res, next) {
-  const key = req.headers['x-api-key'] || req.query.api_key;
+  // Accept: X-API-Key header, ?api_key= query param, or Authorization: Bearer <key>
+  const authHeader = req.headers['authorization'] || '';
+  const bearerKey  = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : authHeader.trim();
+  const key = req.headers['x-api-key'] || req.query.api_key || bearerKey || null;
 
   if (!key) {
     return res.status(401).json({
