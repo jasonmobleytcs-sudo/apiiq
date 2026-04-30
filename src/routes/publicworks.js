@@ -6,7 +6,7 @@ const router = express.Router();
 // GET /api/publicworks/account/:accountNumber
 router.get('/account/:accountNumber', (req, res) => {
   const resident = db.prepare(
-    'SELECT id, name, gender, address, phone, account_number, service_type, last_inspection, inspection_result, balance, email FROM pw_residents WHERE account_number = ?'
+    'SELECT id, name, gender, address, phone, account_number, service_type, pickup_day, last_inspection, inspection_result, balance, email FROM pw_residents WHERE account_number = ?'
   ).get(req.params.accountNumber.toUpperCase());
 
   if (!resident) {
@@ -20,7 +20,7 @@ router.get('/account/:accountNumber', (req, res) => {
 router.get('/phone/:phone', (req, res) => {
   const phone = req.params.phone.replace(/\D/g, '');
   const resident = db.prepare(
-    "SELECT id, name, gender, address, phone, account_number, service_type, last_inspection, inspection_result, balance, email FROM pw_residents WHERE REPLACE(REPLACE(REPLACE(phone,'-',''),'(',''),')','') = ?"
+    "SELECT id, name, gender, address, phone, account_number, service_type, pickup_day, last_inspection, inspection_result, balance, email FROM pw_residents WHERE REPLACE(REPLACE(REPLACE(phone,'-',''),'(',''),')','') = ?"
   ).get(phone);
 
   if (!resident) {
@@ -57,7 +57,7 @@ router.post('/verify-pin', (req, res) => {
 // GET /api/publicworks/account/:accountNumber/services
 router.get('/account/:accountNumber/services', (req, res) => {
   const resident = db.prepare(
-    'SELECT account_number, name, service_type, last_inspection, inspection_result FROM pw_residents WHERE account_number = ?'
+    'SELECT account_number, name, service_type, pickup_day, last_inspection, inspection_result FROM pw_residents WHERE account_number = ?'
   ).get(req.params.accountNumber.toUpperCase());
 
   if (!resident) {
@@ -129,7 +129,7 @@ router.patch('/account/:accountNumber/balance', (req, res) => {
 // GET /api/publicworks/residents
 router.get('/residents', (req, res) => {
   const residents = db.prepare(
-    'SELECT id, name, account_number, phone, service_type, balance, inspection_result FROM pw_residents ORDER BY id'
+    'SELECT id, name, account_number, phone, service_type, pickup_day, balance, inspection_result FROM pw_residents ORDER BY id'
   ).all();
   res.json({ success: true, count: residents.length, data: residents });
 });
@@ -137,15 +137,15 @@ router.get('/residents', (req, res) => {
 // Create a new resident
 // POST /api/publicworks/residents
 router.post('/residents', (req, res) => {
-  const { name, gender, address, phone, account_number, pin, service_type, last_inspection, inspection_result, balance, email } = req.body;
+  const { name, gender, address, phone, account_number, pin, service_type, pickup_day, last_inspection, inspection_result, balance, email } = req.body;
   if (!name || !address || !phone || !account_number || !pin || !service_type) {
     return res.status(400).json({ success: false, message: 'name, address, phone, account_number, pin, service_type are required' });
   }
   try {
     const result = db.prepare(`
-      INSERT INTO pw_residents (name, gender, address, phone, account_number, pin, service_type, last_inspection, inspection_result, balance, email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(name, gender || null, address, phone, account_number.toUpperCase(), String(pin), service_type, last_inspection || null, inspection_result || null, balance ?? 0, email || null);
+      INSERT INTO pw_residents (name, gender, address, phone, account_number, pin, service_type, pickup_day, last_inspection, inspection_result, balance, email)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, gender || null, address, phone, account_number.toUpperCase(), String(pin), service_type, pickup_day || null, last_inspection || null, inspection_result || null, balance ?? 0, email || null);
     const created = db.prepare('SELECT * FROM pw_residents WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ success: true, data: created });
   } catch (err) {
@@ -162,16 +162,17 @@ router.put('/account/:accountNumber', (req, res) => {
   const existing = db.prepare('SELECT * FROM pw_residents WHERE account_number = ?').get(req.params.accountNumber.toUpperCase());
   if (!existing) return res.status(404).json({ success: false, message: 'Account not found' });
 
-  const { name, gender, address, phone, pin, service_type, last_inspection, inspection_result, balance, email } = req.body;
+  const { name, gender, address, phone, pin, service_type, pickup_day, last_inspection, inspection_result, balance, email } = req.body;
   db.prepare(`
     UPDATE pw_residents SET
       name = ?, gender = ?, address = ?, phone = ?, pin = ?,
-      service_type = ?, last_inspection = ?, inspection_result = ?, balance = ?, email = ?
+      service_type = ?, pickup_day = ?, last_inspection = ?, inspection_result = ?, balance = ?, email = ?
     WHERE account_number = ?
   `).run(
     name ?? existing.name, gender ?? existing.gender, address ?? existing.address,
     phone ?? existing.phone, pin ? String(pin) : existing.pin,
-    service_type ?? existing.service_type, last_inspection ?? existing.last_inspection,
+    service_type ?? existing.service_type, pickup_day ?? existing.pickup_day,
+    last_inspection ?? existing.last_inspection,
     inspection_result ?? existing.inspection_result, balance ?? existing.balance,
     email ?? existing.email, existing.account_number
   );
