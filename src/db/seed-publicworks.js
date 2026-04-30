@@ -35,47 +35,7 @@ function seedPublicWorks() {
     pickupDays[`NN${10000 + i}`] = DAYS[(i - 1) % 5];
   }
 
-  const count = db.prepare('SELECT COUNT(*) as n FROM pw_residents').get();
-
-  if (count.n > 0) {
-    // ── Existing DB: backfill pickup_day where null ────────────────────────
-    const updateDay = db.prepare(
-      "UPDATE pw_residents SET pickup_day = ? WHERE account_number = ? AND (pickup_day IS NULL OR pickup_day = '')"
-    );
-    const backfill = db.transaction(() => {
-      for (const [acct, day] of Object.entries(pickupDays)) updateDay.run(day, acct);
-    });
-    backfill();
-    console.log('[DB] pickup_day backfill applied to existing residents');
-
-    // ── Add Todd Anderson if not already present ───────────────────────────
-    const toddExists = db.prepare("SELECT id FROM pw_residents WHERE account_number = 'NN10043'").get();
-    if (!toddExists) {
-      db.prepare(`
-        INSERT INTO pw_residents
-          (name, gender, address, phone, account_number, pin, service_type, pickup_day,
-           last_inspection, inspection_result, balance, email)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        'Todd Anderson', 'M', '2415 Cunningham Dr, Newport News, VA 23602',
-        '703-728-2157', 'NN10043', '3344', 'Trash', 'Wednesday',
-        '04/10/2026', 'Pass', 0.00, 'todd.anderson@email.com'
-      );
-      console.log('[DB] Added Todd Anderson (NN10043)');
-    }
-    return;
-  }
-
-  // ── Fresh install: seed all 43 residents ──────────────────────────────────
-  const insert = db.prepare(`
-    INSERT INTO pw_residents
-      (name, gender, address, phone, account_number, pin, service_type, pickup_day,
-       last_inspection, inspection_result, balance, email)
-    VALUES
-      (@name, @gender, @address, @phone, @account_number, @pin, @service_type, @pickup_day,
-       @last_inspection, @inspection_result, @balance, @email)
-  `);
-
+  // ── Master resident list ──────────────────────────────────────────────────
   const residents = [
     { name: 'Marcus Hill',       gender: 'M', address: '1205 28th St, Newport News, VA 23607',             phone: '757-555-2101', account_number: 'NN10001', pin: '4421', service_type: 'Trash',          pickup_day: 'Monday',    last_inspection: '03/12/2026', inspection_result: 'Pass', balance: 0.00,  email: 'marcus.hill@email.com' },
     { name: 'Angela Brooks',     gender: 'F', address: '5421 Chestnut Ave, Newport News, VA 23605',        phone: '757-555-2102', account_number: 'NN10002', pin: '8832', service_type: 'Trash/Recycling', pickup_day: 'Tuesday',   last_inspection: '03/10/2026', inspection_result: 'Pass', balance: 12.50, email: 'angela.brooks@email.com' },
@@ -119,8 +79,65 @@ function seedPublicWorks() {
     { name: 'Victoria Hughes',   gender: 'F', address: '812 Warwick Blvd, Newport News, VA 23607',         phone: '757-555-2140', account_number: 'NN10040', pin: '2298', service_type: 'Trash/Recycling', pickup_day: 'Friday',    last_inspection: '03/09/2026', inspection_result: 'Pass', balance: 6.75,  email: 'vhughes@email.com' },
     { name: 'Jason Mobley',      gender: 'M', address: '1014 Greenbrier Pkwy, Newport News, VA 23608',     phone: '850-217-6664', account_number: 'NN10041', pin: '5561', service_type: 'Trash',          pickup_day: 'Monday',    last_inspection: '04/15/2026', inspection_result: 'Pass', balance: 0.00,  email: 'jason.mobley@email.com' },
     { name: 'Mason Morris',      gender: 'M', address: '837 Pilot House Dr, Newport News, VA 23606',       phone: '850-655-3044', account_number: 'NN10042', pin: '7731', service_type: 'Trash',          pickup_day: 'Tuesday',   last_inspection: '04/22/2026', inspection_result: 'Pass', balance: 22.75, email: 'mason.morris@email.com' },
-    { name: 'Todd Anderson',     gender: 'M', address: '2415 Cunningham Dr, Newport News, VA 23602',       phone: '703-728-2157', account_number: 'NN10043', pin: '3344', service_type: 'Trash',          pickup_day: 'Wednesday', last_inspection: '04/10/2026', inspection_result: 'Pass', balance: 0.00,  email: 'todd.anderson@email.com' },
+    { name: 'Todd Anderson',     gender: 'M', address: '2101 Village Green Pkwy, Newport News, VA 23602',  phone: '703-728-2157', account_number: 'NN10043', pin: '3344', service_type: 'Trash',          pickup_day: 'Wednesday', last_inspection: '04/10/2026', inspection_result: 'Pass', balance: 0.00,  email: 'todd.anderson@email.com' },
   ];
+
+  const count = db.prepare('SELECT COUNT(*) as n FROM pw_residents').get();
+
+  if (count.n > 0) {
+    // ── Backfill pickup_day where null ────────────────────────────────────────
+    const updateDay = db.prepare(
+      "UPDATE pw_residents SET pickup_day = ? WHERE account_number = ? AND (pickup_day IS NULL OR pickup_day = '')"
+    );
+    const backfillDays = db.transaction(() => {
+      for (const [acct, day] of Object.entries(pickupDays)) updateDay.run(day, acct);
+    });
+    backfillDays();
+
+    // ── Backfill email and last_inspection from master list where null ─────────
+    const updateMeta = db.prepare(
+      "UPDATE pw_residents SET email = ?, last_inspection = ?, inspection_result = ? WHERE account_number = ? AND (email IS NULL OR email = '' OR last_inspection IS NULL OR last_inspection = '')"
+    );
+    const backfillMeta = db.transaction(() => {
+      for (const r of residents) {
+        updateMeta.run(r.email, r.last_inspection, r.inspection_result, r.account_number);
+      }
+    });
+    backfillMeta();
+    console.log('[DB] email/last_inspection backfill applied');
+
+    // ── Update Todd's address ─────────────────────────────────────────────────
+    db.prepare(
+      "UPDATE pw_residents SET address = '2101 Village Green Pkwy, Newport News, VA 23602' WHERE account_number = 'NN10043'"
+    ).run();
+    console.log('[DB] Todd Anderson address updated');
+
+    // ── Add Todd if not present ────────────────────────────────────────────────
+    const toddExists = db.prepare("SELECT id FROM pw_residents WHERE account_number = 'NN10043'").get();
+    if (!toddExists) {
+      const t = residents.find(r => r.account_number === 'NN10043');
+      db.prepare(`
+        INSERT INTO pw_residents
+          (name, gender, address, phone, account_number, pin, service_type, pickup_day,
+           last_inspection, inspection_result, balance, email)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(t.name, t.gender, t.address, t.phone, t.account_number, t.pin,
+             t.service_type, t.pickup_day, t.last_inspection, t.inspection_result,
+             t.balance, t.email);
+      console.log('[DB] Added Todd Anderson (NN10043)');
+    }
+    return;
+  }
+
+  // ── Fresh install: seed all 43 residents ──────────────────────────────────
+  const insert = db.prepare(`
+    INSERT INTO pw_residents
+      (name, gender, address, phone, account_number, pin, service_type, pickup_day,
+       last_inspection, inspection_result, balance, email)
+    VALUES
+      (@name, @gender, @address, @phone, @account_number, @pin, @service_type, @pickup_day,
+       @last_inspection, @inspection_result, @balance, @email)
+  `);
 
   const seedAll = db.transaction(() => {
     for (const r of residents) insert.run(r);
