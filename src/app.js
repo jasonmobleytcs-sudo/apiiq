@@ -35,6 +35,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'APIIQ', timestamp: new Date().toISOString() });
 });
 
+app.get('/screenpop', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/screenpop.html'));
+});
+
 // ─── Protected routes (require API key) ───────────────────────────────────────
 app.use('/api', requireApiKey);
 app.use('/api/publicworks', publicWorksRouter);

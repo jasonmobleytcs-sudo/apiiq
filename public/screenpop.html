@@ -539,19 +539,25 @@
   tick();
   setInterval(tick, 1000);
 
-  // ── Parse URL params ──
-  const p = new URLSearchParams(window.location.search);
-  const data = {
-    found:      (p.get('found') || 'not_found').toLowerCase(),
-    name:       p.get('name')       || '',
-    account:    p.get('account')    || '',
-    phone:      p.get('phone')      || '',
-    address:    p.get('address')    || '',
-    balance:    p.get('balance')    || '0',
-    service:    p.get('service')    || '',
-    inspection: p.get('inspection') || '',
-    pickup:     p.get('pickup')     || '',
-  };
+  const API_KEY  = 'cef44c87-ac22-49e5-9edc-5f3205186e58';
+  const BASE_URL = '';
+
+  // ── Helpers ──
+  function formatPhone(raw) {
+    const d = String(raw).replace(/\D/g, '');
+    if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+    return raw || '—';
+  }
+
+  function initials(name) {
+    return (name || '').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?';
+  }
+
+  function formatBalance(val) {
+    const n = parseFloat(val);
+    if (isNaN(n)) return '$0.00';
+    return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
 
   // ── Timestamp ──
   document.getElementById('call-time').innerHTML =
@@ -560,173 +566,161 @@
       hour:'2-digit', minute:'2-digit'
     }) + '<br><span style="color:#7a92b0;font-size:11px">Case auto-created</span>';
 
-  // ── Format phone display ──
-  function formatPhone(raw) {
-    const d = String(raw).replace(/\D/g, '');
-    if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
-    return raw || '—';
-  }
+  // ── Parse incoming phone from %E (E.164) or %C ──
+  const params = new URLSearchParams(window.location.search);
+  const rawPhone = params.get('phone') || '';
+  let phone = rawPhone.replace(/\D/g, '');
+  if (phone.length === 11 && phone.charAt(0) === '1') phone = phone.slice(1);
 
-  // ── Initials ──
-  function initials(name) {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?';
-  }
+  const formattedPhone = formatPhone(phone);
+  document.getElementById('banner-phone').textContent = formattedPhone || rawPhone || '—';
 
-  // ── Balance formatting ──
-  function formatBalance(val) {
-    const n = parseFloat(val);
-    if (isNaN(n)) return '$0.00';
-    return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  }
-
-  const isFound  = data.found === 'found';
-  const formattedPhone = formatPhone(data.phone);
-  const balance = parseFloat(data.balance) || 0;
-
-  document.getElementById('banner-name').textContent = isFound ? data.name : 'Unknown Caller';
-  document.getElementById('banner-sub').textContent  = isFound
-    ? `Account ${data.account} — Resident identified`
-    : 'No matching resident found in Public Works database';
-  document.getElementById('banner-phone').textContent = formattedPhone;
-
-  // ── Service icon mapping ──
-  const serviceIcons = {
-    'trash':     '🗑️',
-    'recycling': '♻️',
-    'yard waste': '🌿',
-    'bulk':      '📦',
-  };
-  const svcIcon = serviceIcons[(data.service || '').toLowerCase()] || '🏙️';
-
-  // ── Days of week ──
-  const DAYS = ['Mon','Tue','Wed','Thu','Fri'];
-  const pickupDayShort = (data.pickup || '').slice(0,3);
-
-  // ── Render ──
   const main = document.getElementById('main-content');
 
-  if (!isFound) {
+  // ── Show loading state ──
+  main.style.gridTemplateColumns = '1fr';
+  main.innerHTML = `
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:60px 20px">
+        <div style="font-size:40px;margin-bottom:16px;animation:pulse 1s infinite">🔍</div>
+        <div style="font-size:18px;font-weight:600;color:#7a92b0">Looking up resident…</div>
+        <div style="font-size:13px;color:#7a92b0;margin-top:8px">${formattedPhone}</div>
+      </div>
+    </div>`;
+
+  // ── Fetch resident from API ──
+  async function loadResident() {
+    if (!phone || phone.length !== 10) {
+      renderNotFound(formattedPhone, 'Could not parse a valid 10-digit number from the caller ID.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/publicworks/phone/${phone}?api_key=${API_KEY}`);
+      if (res.status === 404) { renderNotFound(formattedPhone); return; }
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+
+      const json = await res.json();
+      if (!json.success || !json.data) { renderNotFound(formattedPhone); return; }
+
+      renderResident(json.data, phone);
+    } catch (e) {
+      renderError(e.message);
+    }
+  }
+
+  function renderNotFound(ph, msg) {
+    document.getElementById('banner-name').textContent = 'Unknown Caller';
+    document.getElementById('banner-sub').textContent  = 'No matching resident found in Public Works database';
     main.style.gridTemplateColumns = '1fr';
     main.innerHTML = `
       <div class="card">
         <div class="card-body not-found">
           <div class="nf-icon">🔍</div>
           <h2>No Resident Record Found</h2>
-          <p>Phone number <strong style="color:#e8edf5">${formattedPhone}</strong> did not match any account in the Newport News Public Works database.</p>
+          <p>Phone number <strong style="color:#e8edf5">${ph}</strong> did not match any account in the Newport News Public Works database.</p>
+          ${msg ? `<p style="margin-top:12px;opacity:0.6">${msg}</p>` : ''}
           <p style="margin-top:12px">The caller may be a new resident or calling from an unregistered number.</p>
         </div>
       </div>`;
-    return;
   }
 
-  main.innerHTML = `
-    <!-- Left: Resident Profile -->
-    <div style="display:flex;flex-direction:column;gap:24px">
-
+  function renderError(msg) {
+    main.style.gridTemplateColumns = '1fr';
+    main.innerHTML = `
       <div class="card">
-        <div class="card-header"><span class="icon">👤</span> Resident Profile</div>
-        <div class="card-body" style="text-align:center">
-          <div class="profile-avatar">${initials(data.name)}</div>
-          <div class="profile-name">${data.name}</div>
-          <div class="profile-account">Account <strong>${data.account}</strong></div>
-          <div class="status-row">
-            <span class="badge badge-green">✓ Active</span>
-            <span class="badge badge-blue">Public Works</span>
-            ${balance > 0 ? `<span class="badge badge-gold">⚠ Balance Due</span>` : `<span class="badge badge-green">✓ Paid</span>`}
-          </div>
+        <div class="card-body not-found">
+          <div class="nf-icon">⚠️</div>
+          <h2>Lookup Error</h2>
+          <p style="color:#ef4444">${msg}</p>
         </div>
-      </div>
+      </div>`;
+  }
 
-      <div class="card">
-        <div class="card-header"><span class="icon">📋</span> Account Details</div>
-        <div class="card-body">
-          <div class="detail-row">
-            <span class="detail-label">Account #</span>
-            <span class="detail-value" style="color:#2196c4">${data.account}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Phone</span>
-            <span class="detail-value">${formattedPhone}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Service</span>
-            <span class="detail-value">${data.service || '—'}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Inspection</span>
-            <span class="detail-value" style="color:${data.inspection === 'Pass' ? '#22c55e' : '#ef4444'}">${data.inspection || '—'}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Balance</span>
-            <span class="detail-value" style="color:${balance > 0 ? '#f5a623' : '#22c55e'}">${formatBalance(data.balance)}</span>
-          </div>
-        </div>
-      </div>
+  function renderResident(resident, ph) {
+    const balance = parseFloat(resident.balance) || 0;
+    const serviceIcons = { 'trash':'🗑️', 'recycling':'♻️', 'yard waste':'🌿', 'bulk':'📦' };
+    const svcIcon = serviceIcons[(resident.service_type || '').toLowerCase()] || '🏙️';
+    const DAYS = ['Mon','Tue','Wed','Thu','Fri'];
+    const pickupShort = (resident.pickup_day || '').slice(0,3);
 
-    </div>
+    document.getElementById('banner-name').textContent = resident.name;
+    document.getElementById('banner-sub').textContent  = `Account ${resident.account_number} — Resident identified`;
 
-    <!-- Right: Detail cards -->
-    <div class="right-col">
-
-      <div class="card">
-        <div class="card-header"><span class="icon">📍</span> Service Address</div>
-        <div class="card-body">
-          <div class="address-text">${data.address || '—'}</div>
-          <a class="map-link" href="https://www.google.com/maps/search/${encodeURIComponent(data.address)}" target="_blank">
-            🗺 View on Map
-          </a>
-        </div>
-      </div>
-
-      <div class="grid-2">
-
+    main.style.gridTemplateColumns = '340px 1fr';
+    main.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:24px">
         <div class="card">
-          <div class="card-header"><span class="icon">💳</span> Account Balance</div>
-          <div class="card-body">
-            <div class="balance-amount ${balance === 0 ? 'zero' : ''}">${formatBalance(data.balance)}</div>
-            <div class="balance-label">${balance > 0 ? 'Payment due — account has outstanding balance' : 'Account is current — no balance due'}</div>
-            <div class="balance-status" style="margin-top:16px">
-              ${balance > 0
-                ? `<span class="badge badge-gold">⚠ Outstanding Balance</span>`
-                : `<span class="badge badge-green">✓ Account Current</span>`}
+          <div class="card-header"><span class="icon">👤</span> Resident Profile</div>
+          <div class="card-body" style="text-align:center">
+            <div class="profile-avatar">${initials(resident.name)}</div>
+            <div class="profile-name">${resident.name}</div>
+            <div class="profile-account">Account <strong>${resident.account_number}</strong></div>
+            <div class="status-row">
+              <span class="badge badge-green">✓ Active</span>
+              <span class="badge badge-blue">Public Works</span>
+              ${balance > 0 ? `<span class="badge badge-gold">⚠ Balance Due</span>` : `<span class="badge badge-green">✓ Paid</span>`}
             </div>
           </div>
         </div>
-
         <div class="card">
-          <div class="card-header"><span class="icon">🔍</span> Last Inspection</div>
+          <div class="card-header"><span class="icon">📋</span> Account Details</div>
           <div class="card-body">
-            <div class="inspection-result ${(data.inspection || '').toLowerCase()}">${data.inspection || '—'}</div>
-            <div style="margin-top:12px">
-              ${data.inspection === 'Pass'
-                ? `<span class="badge badge-green">✓ Passed Inspection</span>`
-                : data.inspection === 'Fail'
-                ? `<span class="badge badge-red">✗ Failed Inspection</span>`
-                : `<span class="badge badge-gray">No record</span>`}
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="card">
-        <div class="card-header"><span class="icon">${svcIcon}</span> Collection Schedule — ${data.service || 'Service'}</div>
-        <div class="card-body">
-          <div class="service-icon-wrap">
-            <div class="service-icon">${svcIcon}</div>
-            <div>
-              <div class="service-type">${data.service || '—'}</div>
-              <div class="service-sub">Scheduled pickup: <strong style="color:#e8edf5">${data.pickup || '—'}</strong></div>
-            </div>
-          </div>
-          <div class="pickup-grid">
-            ${DAYS.map(d => `<div class="pickup-day ${d === pickupDayShort ? 'active' : ''}">${d}</div>`).join('')}
+            <div class="detail-row"><span class="detail-label">Account #</span><span class="detail-value" style="color:#2196c4">${resident.account_number}</span></div>
+            <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">${formatPhone(ph)}</span></div>
+            <div class="detail-row"><span class="detail-label">Service</span><span class="detail-value">${resident.service_type || '—'}</span></div>
+            <div class="detail-row"><span class="detail-label">Inspection</span><span class="detail-value" style="color:${resident.inspection_result === 'Pass' ? '#22c55e' : '#ef4444'}">${resident.inspection_result || '—'}</span></div>
+            <div class="detail-row"><span class="detail-label">Balance</span><span class="detail-value" style="color:${balance > 0 ? '#f5a623' : '#22c55e'}">${formatBalance(balance)}</span></div>
           </div>
         </div>
       </div>
 
-    </div>
-  `;
+      <div class="right-col">
+        <div class="card">
+          <div class="card-header"><span class="icon">📍</span> Service Address</div>
+          <div class="card-body">
+            <div class="address-text">${resident.address || '—'}</div>
+            <a class="map-link" href="https://www.google.com/maps/search/${encodeURIComponent(resident.address || '')}" target="_blank">🗺 View on Map</a>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span class="icon">💳</span> Account Balance</div>
+            <div class="card-body">
+              <div class="balance-amount ${balance === 0 ? 'zero' : ''}">${formatBalance(balance)}</div>
+              <div class="balance-label">${balance > 0 ? 'Payment due — outstanding balance' : 'Account is current — no balance due'}</div>
+              <div style="margin-top:16px">${balance > 0 ? `<span class="badge badge-gold">⚠ Outstanding Balance</span>` : `<span class="badge badge-green">✓ Account Current</span>`}</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="icon">🔍</span> Last Inspection</div>
+            <div class="card-body">
+              <div class="inspection-result ${(resident.inspection_result || '').toLowerCase()}">${resident.inspection_result || '—'}</div>
+              <div style="margin-top:12px">
+                ${resident.inspection_result === 'Pass' ? `<span class="badge badge-green">✓ Passed</span>` : resident.inspection_result === 'Fail' ? `<span class="badge badge-red">✗ Failed</span>` : `<span class="badge badge-gray">No record</span>`}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="icon">${svcIcon}</span> Collection Schedule — ${resident.service_type || 'Service'}</div>
+          <div class="card-body">
+            <div class="service-icon-wrap">
+              <div class="service-icon">${svcIcon}</div>
+              <div>
+                <div class="service-type">${resident.service_type || '—'}</div>
+                <div class="service-sub">Scheduled pickup: <strong style="color:#e8edf5">${resident.pickup_day || '—'}</strong></div>
+              </div>
+            </div>
+            <div class="pickup-grid">
+              ${DAYS.map(d => `<div class="pickup-day ${d === pickupShort ? 'active' : ''}">${d}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  loadResident();
 </script>
 </body>
 </html>
