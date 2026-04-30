@@ -20,107 +20,189 @@
       <span class="brand-sub">City Government API Platform</span>
     </div>
   </div>
+
+  <nav class="topnav-tabs">
+    <button class="tab-btn active" data-view="databases">🗄 Databases</button>
+    <button class="tab-btn" data-view="explorer">⚡ API Explorer</button>
+  </nav>
+
   <div class="topnav-key">
     <label for="apiKeyInput">API Key</label>
     <div class="key-input-wrap">
-      <input id="apiKeyInput" type="password" placeholder="Enter your API key…" autocomplete="off" />
-      <button id="toggleKey" class="btn-icon" title="Show/hide key">👁</button>
+      <input id="apiKeyInput" type="password" placeholder="Paste your API key…" autocomplete="off" />
+      <button id="toggleKey" class="btn-icon" title="Show/hide">👁</button>
       <button id="saveKey" class="btn-sm btn-primary">Save</button>
     </div>
     <span id="keyStatus" class="key-status"></span>
   </div>
 </header>
 
-<!-- LAYOUT -->
-<div class="layout">
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  VIEW: DATABASES                                               -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="view-databases" class="view">
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="sidebar-section">
-      <div class="sidebar-label">Modules</div>
-      <div id="moduleList" class="module-list"></div>
+  <!-- DB HOME: card grid -->
+  <div id="db-home" class="db-home">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Databases</h1>
+        <p class="page-sub">Select a database to browse, edit, or add records.</p>
+      </div>
     </div>
-    <div class="sidebar-section sidebar-keys">
-      <div class="sidebar-label">Key Management</div>
-      <button class="sidebar-endpoint" data-action="key-list">
-        <span class="method-badge get">GET</span> List Keys
-      </button>
-      <button class="sidebar-endpoint" data-action="key-create">
-        <span class="method-badge post">POST</span> Create Key
-      </button>
-      <button class="sidebar-endpoint" data-action="key-revoke">
-        <span class="method-badge del">DEL</span> Revoke Key
-      </button>
-    </div>
-  </aside>
+    <div id="dbCards" class="db-cards"></div>
+  </div>
 
-  <!-- MAIN PANEL -->
-  <main class="main">
-
-    <!-- WELCOME STATE -->
-    <div id="welcomePanel" class="welcome">
-      <div class="welcome-icon">🏛</div>
-      <h1>Newport News City Government API</h1>
-      <p>Select an endpoint from the sidebar to explore, test, and integrate city services into your Zoom Contact Center or Virtual Agent flows.</p>
-      <div class="welcome-cards">
-        <div class="welcome-card">
-          <div class="wc-icon">🗑</div>
-          <div class="wc-title">Public Works</div>
-          <div class="wc-desc">Sanitation accounts, inspections, balances, and payments</div>
+  <!-- DB TABLE VIEW -->
+  <div id="db-table-view" class="db-table-view hidden">
+    <div class="page-header">
+      <div class="breadcrumb">
+        <button class="breadcrumb-link" id="backToDbs">Databases</button>
+        <span class="breadcrumb-sep">›</span>
+        <span id="tableTitle" class="breadcrumb-current"></span>
+      </div>
+      <div class="table-actions">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input id="tableSearch" type="text" placeholder="Search…" class="search-input" />
         </div>
-        <div class="welcome-card">
-          <div class="wc-icon">🔑</div>
-          <div class="wc-title">API Keys</div>
-          <div class="wc-desc">Create and manage access keys for each integration</div>
-        </div>
-        <div class="welcome-card">
-          <div class="wc-icon">📋</div>
-          <div class="wc-title">IVR Auth</div>
-          <div class="wc-desc">PIN verification for automated caller authentication</div>
-        </div>
+        <button id="addRowBtn" class="btn-sm btn-success">+ Add Record</button>
       </div>
     </div>
 
-    <!-- ENDPOINT PANEL (hidden until endpoint selected) -->
-    <div id="endpointPanel" class="endpoint-panel hidden">
-      <div class="ep-header">
-        <div class="ep-title-row">
-          <span id="epMethodBadge" class="method-badge-lg"></span>
-          <span id="epPath" class="ep-path"></span>
-        </div>
-        <p id="epDesc" class="ep-desc"></p>
+    <div class="table-meta">
+      <span id="tableCount" class="table-count"></span>
+      <span id="tableFiltered" class="table-filtered"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table id="dataTable" class="data-table">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div id="tableEmpty" class="table-empty hidden">No records match your search.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  VIEW: API EXPLORER                                            -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="view-explorer" class="view hidden">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Modules</div>
+        <div id="moduleList" class="module-list"></div>
       </div>
+      <div class="sidebar-section sidebar-keys">
+        <div class="sidebar-label">Key Management</div>
+        <button class="sidebar-endpoint" data-action="key-list">
+          <span class="method-badge get">GET</span> List Keys
+        </button>
+        <button class="sidebar-endpoint" data-action="key-create">
+          <span class="method-badge post">POST</span> Create Key
+        </button>
+        <button class="sidebar-endpoint" data-action="key-revoke">
+          <span class="method-badge del">DEL</span> Revoke Key
+        </button>
+      </div>
+    </aside>
 
-      <div class="ep-body">
-        <!-- Params / Body -->
-        <div class="ep-section" id="paramsSection">
-          <div class="ep-section-title">Parameters</div>
-          <div id="paramsForm" class="params-form"></div>
-        </div>
-
-        <!-- Execute -->
-        <div class="ep-actions">
-          <button id="executeBtn" class="btn-execute">
-            <span class="execute-icon">▶</span> Send Request
-          </button>
-          <button id="copyCurlBtn" class="btn-sm btn-ghost">Copy cURL</button>
-          <span id="responseTime" class="response-time"></span>
-        </div>
-
-        <!-- Response -->
-        <div class="ep-section" id="responseSection" style="display:none">
-          <div class="ep-section-title">
-            Response
-            <span id="statusBadge" class="status-badge"></span>
+    <main class="main">
+      <div id="welcomePanel" class="welcome">
+        <div class="welcome-icon">🏛</div>
+        <h1>Newport News City Government API</h1>
+        <p>Select an endpoint from the sidebar to explore and test live API calls.</p>
+        <div class="welcome-cards">
+          <div class="welcome-card">
+            <div class="wc-icon">🗑</div>
+            <div class="wc-title">Public Works</div>
+            <div class="wc-desc">Sanitation accounts, inspections, balances, payments</div>
           </div>
-          <pre id="responseBody" class="response-pre"></pre>
+          <div class="welcome-card">
+            <div class="wc-icon">🔑</div>
+            <div class="wc-title">API Keys</div>
+            <div class="wc-desc">Create and manage access keys per integration</div>
+          </div>
+          <div class="welcome-card">
+            <div class="wc-icon">📋</div>
+            <div class="wc-title">IVR Auth</div>
+            <div class="wc-desc">PIN verification for automated caller flows</div>
+          </div>
         </div>
       </div>
-    </div>
 
-  </main>
+      <div id="endpointPanel" class="endpoint-panel hidden">
+        <div class="ep-header">
+          <div class="ep-title-row">
+            <span id="epMethodBadge" class="method-badge-lg"></span>
+            <span id="epPath" class="ep-path"></span>
+          </div>
+          <p id="epDesc" class="ep-desc"></p>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section" id="paramsSection">
+            <div class="ep-section-title">Parameters</div>
+            <div id="paramsForm" class="params-form"></div>
+          </div>
+          <div class="ep-actions">
+            <button id="executeBtn" class="btn-execute">
+              <span class="execute-icon">▶</span> Send Request
+            </button>
+            <button id="copyCurlBtn" class="btn-sm btn-ghost">Copy cURL</button>
+            <span id="responseTime" class="response-time"></span>
+          </div>
+          <div class="ep-section" id="responseSection" style="display:none">
+            <div class="ep-section-title">
+              Response
+              <span id="statusBadge" class="status-badge"></span>
+            </div>
+            <pre id="responseBody" class="response-pre"></pre>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  MODAL: ADD / EDIT RECORD                                      -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="recordModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle" class="modal-title"></h2>
+      <button id="modalClose" class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modalForm" class="modal-form"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="modalCancel" class="btn-sm btn-ghost">Cancel</button>
+      <button id="modalSave" class="btn-sm btn-primary">Save Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Confirm delete -->
+<div id="confirmModal" class="modal-overlay hidden">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 class="modal-title">Delete Record</h2>
+      <button id="confirmClose" class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmMsg" style="color:var(--text-mid);line-height:1.6"></p>
+    </div>
+    <div class="modal-footer">
+      <button id="confirmCancel" class="btn-sm btn-ghost">Cancel</button>
+      <button id="confirmDelete" class="btn-sm btn-danger">Delete</button>
+    </div>
+  </div>
 </div>
 
 <script src="app.js"></script>
+<script src="db-manager.js"></script>
 </body>
 </html>

@@ -134,4 +134,57 @@ router.get('/residents', (req, res) => {
   res.json({ success: true, count: residents.length, data: residents });
 });
 
+// Create a new resident
+// POST /api/publicworks/residents
+router.post('/residents', (req, res) => {
+  const { name, gender, address, phone, account_number, pin, service_type, last_inspection, inspection_result, balance, email } = req.body;
+  if (!name || !address || !phone || !account_number || !pin || !service_type) {
+    return res.status(400).json({ success: false, message: 'name, address, phone, account_number, pin, service_type are required' });
+  }
+  try {
+    const result = db.prepare(`
+      INSERT INTO pw_residents (name, gender, address, phone, account_number, pin, service_type, last_inspection, inspection_result, balance, email)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, gender || null, address, phone, account_number.toUpperCase(), String(pin), service_type, last_inspection || null, inspection_result || null, balance ?? 0, email || null);
+    const created = db.prepare('SELECT * FROM pw_residents WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json({ success: true, data: created });
+  } catch (err) {
+    if (err.message.includes('UNIQUE')) {
+      return res.status(409).json({ success: false, message: 'Account number already exists' });
+    }
+    throw err;
+  }
+});
+
+// Update a resident
+// PUT /api/publicworks/account/:accountNumber
+router.put('/account/:accountNumber', (req, res) => {
+  const existing = db.prepare('SELECT * FROM pw_residents WHERE account_number = ?').get(req.params.accountNumber.toUpperCase());
+  if (!existing) return res.status(404).json({ success: false, message: 'Account not found' });
+
+  const { name, gender, address, phone, pin, service_type, last_inspection, inspection_result, balance, email } = req.body;
+  db.prepare(`
+    UPDATE pw_residents SET
+      name = ?, gender = ?, address = ?, phone = ?, pin = ?,
+      service_type = ?, last_inspection = ?, inspection_result = ?, balance = ?, email = ?
+    WHERE account_number = ?
+  `).run(
+    name ?? existing.name, gender ?? existing.gender, address ?? existing.address,
+    phone ?? existing.phone, pin ? String(pin) : existing.pin,
+    service_type ?? existing.service_type, last_inspection ?? existing.last_inspection,
+    inspection_result ?? existing.inspection_result, balance ?? existing.balance,
+    email ?? existing.email, existing.account_number
+  );
+  const updated = db.prepare('SELECT * FROM pw_residents WHERE account_number = ?').get(existing.account_number);
+  res.json({ success: true, data: updated });
+});
+
+// Delete a resident
+// DELETE /api/publicworks/account/:accountNumber
+router.delete('/account/:accountNumber', (req, res) => {
+  const result = db.prepare('DELETE FROM pw_residents WHERE account_number = ?').run(req.params.accountNumber.toUpperCase());
+  if (result.changes === 0) return res.status(404).json({ success: false, message: 'Account not found' });
+  res.json({ success: true, message: 'Resident deleted' });
+});
+
 module.exports = router;
