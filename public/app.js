@@ -53,6 +53,7 @@ function initViewSwitcher() {
       const view = btn.dataset.view;
       document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
       document.getElementById('view-' + view).classList.remove('hidden');
+      if (view === 'logs' && typeof initLogs === 'function') initLogs();
     });
   });
 }
