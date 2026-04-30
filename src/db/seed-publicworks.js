@@ -31,7 +31,7 @@ function seedPublicWorks() {
   // ── Pickup day map (Mon–Fri cycle, NN10001–NN10043) ───────────────────────
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const pickupDays = {};
-  for (let i = 1; i <= 43; i++) {
+  for (let i = 1; i <= 44; i++) {
     pickupDays[`NN${10000 + i}`] = DAYS[(i - 1) % 5];
   }
 
@@ -80,6 +80,7 @@ function seedPublicWorks() {
     { name: 'Jason Mobley',      gender: 'M', address: '1014 Greenbrier Pkwy, Newport News, VA 23608',     phone: '850-217-6664', account_number: 'NN10041', pin: '5561', service_type: 'Trash',          pickup_day: 'Monday',    last_inspection: '04/15/2026', inspection_result: 'Pass', balance: 0.00,  email: 'jason.mobley@email.com' },
     { name: 'Mason Morris',      gender: 'M', address: '837 Pilot House Dr, Newport News, VA 23606',       phone: '850-655-3044', account_number: 'NN10042', pin: '7731', service_type: 'Trash',          pickup_day: 'Tuesday',   last_inspection: '04/22/2026', inspection_result: 'Pass', balance: 22.75, email: 'mason.morris@email.com' },
     { name: 'Todd Anderson',     gender: 'M', address: '2101 Village Green Pkwy, Newport News, VA 23602',  phone: '703-728-2157', account_number: 'NN10043', pin: '3344', service_type: 'Trash',          pickup_day: 'Wednesday', last_inspection: '04/10/2026', inspection_result: 'Pass', balance: 0.00,  email: 'todd.anderson@email.com' },
+    { name: 'Travis Morretti',   gender: 'M', address: '316 Lakewood Dr, Newport News, VA 23608',          phone: '757-274-9085', account_number: 'NN10044', pin: '4892', service_type: 'Trash/Recycling', pickup_day: 'Thursday',  last_inspection: '04/18/2026', inspection_result: 'Pass', balance: 14.50, email: 'travis.morretti@email.com' },
   ];
 
   const count = db.prepare('SELECT COUNT(*) as n FROM pw_residents').get();
@@ -112,19 +113,22 @@ function seedPublicWorks() {
     ).run();
     console.log('[DB] Todd Anderson address updated');
 
-    // ── Add Todd if not present ────────────────────────────────────────────────
-    const toddExists = db.prepare("SELECT id FROM pw_residents WHERE account_number = 'NN10043'").get();
-    if (!toddExists) {
-      const t = residents.find(r => r.account_number === 'NN10043');
-      db.prepare(`
-        INSERT INTO pw_residents
-          (name, gender, address, phone, account_number, pin, service_type, pickup_day,
-           last_inspection, inspection_result, balance, email)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(t.name, t.gender, t.address, t.phone, t.account_number, t.pin,
-             t.service_type, t.pickup_day, t.last_inspection, t.inspection_result,
-             t.balance, t.email);
-      console.log('[DB] Added Todd Anderson (NN10043)');
+    // ── Add missing demo records if not present ───────────────────────────────
+    const insertOne = db.prepare(`
+      INSERT INTO pw_residents
+        (name, gender, address, phone, account_number, pin, service_type, pickup_day,
+         last_inspection, inspection_result, balance, email)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const acct of ['NN10043', 'NN10044']) {
+      const exists = db.prepare("SELECT id FROM pw_residents WHERE account_number = ?").get(acct);
+      if (!exists) {
+        const r = residents.find(x => x.account_number === acct);
+        insertOne.run(r.name, r.gender, r.address, r.phone, r.account_number, r.pin,
+                      r.service_type, r.pickup_day, r.last_inspection, r.inspection_result,
+                      r.balance, r.email);
+        console.log(`[DB] Added ${r.name} (${acct})`);
+      }
     }
     return;
   }
