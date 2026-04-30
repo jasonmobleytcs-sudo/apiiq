@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Newport News 311 — Incoming Call</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      --navy:      #0a1628;
+      --navy-mid:  #112240;
+      --navy-card: #1a2f4a;
+      --accent:    #1d6fa4;
+      --accent2:   #2196c4;
+      --gold:      #f5a623;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --text:      #e8edf5;
+      --muted:     #7a92b0;
+      --border:    rgba(255,255,255,0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--navy);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--navy-mid);
+      border-bottom: 2px solid var(--accent);
+      padding: 0 32px;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .city-seal {
+      width: 40px;
+      height: 40px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .city-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+    }
+
+    .city-name span {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .topbar-center {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent2);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(34,197,94,0.15);
+      border: 1px solid rgba(34,197,94,0.3);
+      color: var(--green);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    /* ── Incoming call banner ── */
+    .call-banner {
+      background: linear-gradient(135deg, #0d2137 0%, #0f3460 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: slideDown 0.4s ease;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-20px); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
+    }
+
+    .call-info {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .call-icon {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px rgba(29,111,164,0.5);
+      animation: ring 1s ease-in-out 3;
+    }
+
+    @keyframes ring {
+      0%,100% { transform: rotate(0deg); }
+      20%     { transform: rotate(-15deg); }
+      40%     { transform: rotate(15deg); }
+      60%     { transform: rotate(-10deg); }
+      80%     { transform: rotate(10deg); }
+    }
+
+    .call-meta h2 {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .call-meta p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .call-phone {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--accent2);
+      letter-spacing: 1px;
+    }
+
+    .call-timestamp {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* ── Main layout ── */
+    .main {
+      padding: 28px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+      animation: fadeIn 0.5s ease 0.2s both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .card-header .icon {
+      font-size: 16px;
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    /* ── Left column: resident profile ── */
+    .profile-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #0e4d7a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 auto 16px;
+      border: 3px solid var(--accent2);
+    }
+
+    .profile-name {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .profile-account {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .profile-account strong {
+      color: var(--accent2);
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-green  { background: rgba(34,197,94,0.15);  border: 1px solid rgba(34,197,94,0.3);  color: var(--green); }
+    .badge-red    { background: rgba(239,68,68,0.15);   border: 1px solid rgba(239,68,68,0.3);   color: var(--red); }
+    .badge-blue   { background: rgba(33,150,196,0.15);  border: 1px solid rgba(33,150,196,0.3);  color: var(--accent2); }
+    .badge-gold   { background: rgba(245,166,35,0.15);  border: 1px solid rgba(245,166,35,0.3);  color: var(--gold); }
+    .badge-gray   { background: rgba(122,146,176,0.15); border: 1px solid rgba(122,146,176,0.3); color: var(--muted); }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .detail-row:last-child { border-bottom: none; }
+
+    .detail-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      flex-shrink: 0;
+    }
+
+    .detail-value {
+      font-size: 14px;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    /* ── Right column grid ── */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    /* ── Balance card ── */
+    .balance-amount {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: -1px;
+    }
+
+    .balance-amount.zero {
+      color: var(--green);
+    }
+
+    .balance-label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .balance-status {
+      margin-top: 16px;
+    }
+
+    /* ── Service card ── */
+    .service-icon-wrap {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .service-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #0d4f2e, #166534);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+
+    .service-type {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .service-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    /* ── Pickup day ── */
+    .pickup-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .pickup-day {
+      padding: 10px 4px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .pickup-day.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: var(--accent2);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(29,111,164,0.4);
+    }
+
+    /* ── Inspection card ── */
+    .inspection-result {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .inspection-result.pass { color: var(--green); }
+    .inspection-result.fail { color: var(--red); }
+
+    /* ── Address card ── */
+    .address-text {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    .map-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--accent2);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .map-link:hover { text-decoration: underline; }
+
+    /* ── Not found state ── */
+    .not-found {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .not-found .nf-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+
+    .not-found h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .not-found p {
+      font-size: 14px;
+      color: var(--muted);
+      opacity: 0.7;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      padding: 20px 32px;
+      font-size: 11px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+      opacity: 0.6;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .main { grid-template-columns: 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top navigation bar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="city-seal">NN</div>
+    <div class="city-name">
+      City of Newport News
+      <span>311 Customer Service</span>
+    </div>
+  </div>
+  <div class="topbar-center">INCOMING CALL</div>
+  <div class="topbar-right">
+    <div id="clock"></div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+  </div>
+</div>
+
+<!-- Call banner -->
+<div class="call-banner">
+  <div class="call-info">
+    <div class="call-icon">📞</div>
+    <div class="call-meta">
+      <h2 id="banner-name">Loading…</h2>
+      <p id="banner-sub">Caller identified via ANI lookup</p>
+    </div>
+  </div>
+  <div class="call-phone" id="banner-phone">—</div>
+  <div class="call-timestamp" id="call-time"></div>
+</div>
+
+<!-- Main content -->
+<div class="main" id="main-content">
+  <!-- Populated by JS -->
+</div>
+
+<div class="footer">
+  Newport News 311 &nbsp;·&nbsp; Powered by APIIQ &nbsp;·&nbsp; Confidential — Agent Use Only
+</div>
+
+<script>
+  // ── Clock ──
+  function tick() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // ── Parse URL params ──
+  const p = new URLSearchParams(window.location.search);
+  const data = {
+    found:      (p.get('found') || 'not_found').toLowerCase(),
+    name:       p.get('name')       || '',
+    account:    p.get('account')    || '',
+    phone:      p.get('phone')      || '',
+    address:    p.get('address')    || '',
+    balance:    p.get('balance')    || '0',
+    service:    p.get('service')    || '',
+    inspection: p.get('inspection') || '',
+    pickup:     p.get('pickup')     || '',
+  };
+
+  // ── Timestamp ──
+  document.getElementById('call-time').innerHTML =
+    new Date().toLocaleString('en-US', {
+      weekday:'long', month:'long', day:'numeric', year:'numeric',
+      hour:'2-digit', minute:'2-digit'
+    }) + '<br><span style="color:#7a92b0;font-size:11px">Case auto-created</span>';
+
+  // ── Format phone display ──
+  function formatPhone(raw) {
+    const d = String(raw).replace(/\D/g, '');
+    if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+    return raw || '—';
+  }
+
+  // ── Initials ──
+  function initials(name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?';
+  }
+
+  // ── Balance formatting ──
+  function formatBalance(val) {
+    const n = parseFloat(val);
+    if (isNaN(n)) return '$0.00';
+    return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  const isFound  = data.found === 'found';
+  const formattedPhone = formatPhone(data.phone);
+  const balance = parseFloat(data.balance) || 0;
+
+  document.getElementById('banner-name').textContent = isFound ? data.name : 'Unknown Caller';
+  document.getElementById('banner-sub').textContent  = isFound
+    ? `Account ${data.account} — Resident identified`
+    : 'No matching resident found in Public Works database';
+  document.getElementById('banner-phone').textContent = formattedPhone;
+
+  // ── Service icon mapping ──
+  const serviceIcons = {
+    'trash':     '🗑️',
+    'recycling': '♻️',
+    'yard waste': '🌿',
+    'bulk':      '📦',
+  };
+  const svcIcon = serviceIcons[(data.service || '').toLowerCase()] || '🏙️';
+
+  // ── Days of week ──
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri'];
+  const pickupDayShort = (data.pickup || '').slice(0,3);
+
+  // ── Render ──
+  const main = document.getElementById('main-content');
+
+  if (!isFound) {
+    main.style.gridTemplateColumns = '1fr';
+    main.innerHTML = `
+      <div class="card">
+        <div class="card-body not-found">
+          <div class="nf-icon">🔍</div>
+          <h2>No Resident Record Found</h2>
+          <p>Phone number <strong style="color:#e8edf5">${formattedPhone}</strong> did not match any account in the Newport News Public Works database.</p>
+          <p style="margin-top:12px">The caller may be a new resident or calling from an unregistered number.</p>
+        </div>
+      </div>`;
+    return;
+  }
+
+  main.innerHTML = `
+    <!-- Left: Resident Profile -->
+    <div style="display:flex;flex-direction:column;gap:24px">
+
+      <div class="card">
+        <div class="card-header"><span class="icon">👤</span> Resident Profile</div>
+        <div class="card-body" style="text-align:center">
+          <div class="profile-avatar">${initials(data.name)}</div>
+          <div class="profile-name">${data.name}</div>
+          <div class="profile-account">Account <strong>${data.account}</strong></div>
+          <div class="status-row">
+            <span class="badge badge-green">✓ Active</span>
+            <span class="badge badge-blue">Public Works</span>
+            ${balance > 0 ? `<span class="badge badge-gold">⚠ Balance Due</span>` : `<span class="badge badge-green">✓ Paid</span>`}
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="icon">📋</span> Account Details</div>
+        <div class="card-body">
+          <div class="detail-row">
+            <span class="detail-label">Account #</span>
+            <span class="detail-value" style="color:#2196c4">${data.account}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Phone</span>
+            <span class="detail-value">${formattedPhone}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Service</span>
+            <span class="detail-value">${data.service || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Inspection</span>
+            <span class="detail-value" style="color:${data.inspection === 'Pass' ? '#22c55e' : '#ef4444'}">${data.inspection || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Balance</span>
+            <span class="detail-value" style="color:${balance > 0 ? '#f5a623' : '#22c55e'}">${formatBalance(data.balance)}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: Detail cards -->
+    <div class="right-col">
+
+      <div class="card">
+        <div class="card-header"><span class="icon">📍</span> Service Address</div>
+        <div class="card-body">
+          <div class="address-text">${data.address || '—'}</div>
+          <a class="map-link" href="https://www.google.com/maps/search/${encodeURIComponent(data.address)}" target="_blank">
+            🗺 View on Map
+          </a>
+        </div>
+      </div>
+
+      <div class="grid-2">
+
+        <div class="card">
+          <div class="card-header"><span class="icon">💳</span> Account Balance</div>
+          <div class="card-body">
+            <div class="balance-amount ${balance === 0 ? 'zero' : ''}">${formatBalance(data.balance)}</div>
+            <div class="balance-label">${balance > 0 ? 'Payment due — account has outstanding balance' : 'Account is current — no balance due'}</div>
+            <div class="balance-status" style="margin-top:16px">
+              ${balance > 0
+                ? `<span class="badge badge-gold">⚠ Outstanding Balance</span>`
+                : `<span class="badge badge-green">✓ Account Current</span>`}
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="icon">🔍</span> Last Inspection</div>
+          <div class="card-body">
+            <div class="inspection-result ${(data.inspection || '').toLowerCase()}">${data.inspection || '—'}</div>
+            <div style="margin-top:12px">
+              ${data.inspection === 'Pass'
+                ? `<span class="badge badge-green">✓ Passed Inspection</span>`
+                : data.inspection === 'Fail'
+                ? `<span class="badge badge-red">✗ Failed Inspection</span>`
+                : `<span class="badge badge-gray">No record</span>`}
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="icon">${svcIcon}</span> Collection Schedule — ${data.service || 'Service'}</div>
+        <div class="card-body">
+          <div class="service-icon-wrap">
+            <div class="service-icon">${svcIcon}</div>
+            <div>
+              <div class="service-type">${data.service || '—'}</div>
+              <div class="service-sub">Scheduled pickup: <strong style="color:#e8edf5">${data.pickup || '—'}</strong></div>
+            </div>
+          </div>
+          <div class="pickup-grid">
+            ${DAYS.map(d => `<div class="pickup-day ${d === pickupDayShort ? 'active' : ''}">${d}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+</script>
+</body>
+</html>
