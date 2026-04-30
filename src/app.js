@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 
 const seedApiKeys = require('./db/seed-apikeys');
 const seedPublicWorks = require('./db/seed-publicworks');
@@ -11,9 +12,10 @@ const keysRouter = require('./routes/keys');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Seed all databases on startup
 seedApiKeys();
@@ -23,41 +25,6 @@ seedPublicWorks();
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'APIIQ', timestamp: new Date().toISOString() });
-});
-
-app.get('/', (req, res) => {
-  res.json({
-    service: 'APIIQ',
-    description: 'City Government API Demo Platform',
-    version: '1.0.0',
-    authentication: 'All /api/* routes require an API key via X-API-Key header or ?api_key= query param.',
-    modules: {
-      publicworks: {
-        base: '/api/publicworks',
-        description: 'Newport News Public Works & Sanitation',
-        endpoints: [
-          'GET  /api/publicworks/account/:accountNumber',
-          'GET  /api/publicworks/phone/:phone',
-          'POST /api/publicworks/verify-pin',
-          'GET  /api/publicworks/account/:accountNumber/services',
-          'GET  /api/publicworks/account/:accountNumber/balance',
-          'GET  /api/publicworks/account/:accountNumber/inspection',
-          'PATCH /api/publicworks/account/:accountNumber/balance',
-          'GET  /api/publicworks/residents'
-        ]
-      },
-      keys: {
-        base: '/api/keys',
-        description: 'API key management (requires valid key)',
-        endpoints: [
-          'GET    /api/keys',
-          'POST   /api/keys',
-          'DELETE /api/keys/:id',
-          'PATCH  /api/keys/:id/activate'
-        ]
-      }
-    }
-  });
 });
 
 // ─── Protected routes (require API key) ──────────────────────────────────────

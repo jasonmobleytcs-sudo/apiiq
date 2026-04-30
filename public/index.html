@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APIIQ — City Government API Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- TOP NAV -->
+<header class="topnav">
+  <div class="topnav-brand">
+    <div class="brand-icon">⚙</div>
+    <div class="brand-text">
+      <span class="brand-name">APIIQ</span>
+      <span class="brand-sub">City Government API Platform</span>
+    </div>
+  </div>
+  <div class="topnav-key">
+    <label for="apiKeyInput">API Key</label>
+    <div class="key-input-wrap">
+      <input id="apiKeyInput" type="password" placeholder="Enter your API key…" autocomplete="off" />
+      <button id="toggleKey" class="btn-icon" title="Show/hide key">👁</button>
+      <button id="saveKey" class="btn-sm btn-primary">Save</button>
+    </div>
+    <span id="keyStatus" class="key-status"></span>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Modules</div>
+      <div id="moduleList" class="module-list"></div>
+    </div>
+    <div class="sidebar-section sidebar-keys">
+      <div class="sidebar-label">Key Management</div>
+      <button class="sidebar-endpoint" data-action="key-list">
+        <span class="method-badge get">GET</span> List Keys
+      </button>
+      <button class="sidebar-endpoint" data-action="key-create">
+        <span class="method-badge post">POST</span> Create Key
+      </button>
+      <button class="sidebar-endpoint" data-action="key-revoke">
+        <span class="method-badge del">DEL</span> Revoke Key
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN PANEL -->
+  <main class="main">
+
+    <!-- WELCOME STATE -->
+    <div id="welcomePanel" class="welcome">
+      <div class="welcome-icon">🏛</div>
+      <h1>Newport News City Government API</h1>
+      <p>Select an endpoint from the sidebar to explore, test, and integrate city services into your Zoom Contact Center or Virtual Agent flows.</p>
+      <div class="welcome-cards">
+        <div class="welcome-card">
+          <div class="wc-icon">🗑</div>
+          <div class="wc-title">Public Works</div>
+          <div class="wc-desc">Sanitation accounts, inspections, balances, and payments</div>
+        </div>
+        <div class="welcome-card">
+          <div class="wc-icon">🔑</div>
+          <div class="wc-title">API Keys</div>
+          <div class="wc-desc">Create and manage access keys for each integration</div>
+        </div>
+        <div class="welcome-card">
+          <div class="wc-icon">📋</div>
+          <div class="wc-title">IVR Auth</div>
+          <div class="wc-desc">PIN verification for automated caller authentication</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENDPOINT PANEL (hidden until endpoint selected) -->
+    <div id="endpointPanel" class="endpoint-panel hidden">
+      <div class="ep-header">
+        <div class="ep-title-row">
+          <span id="epMethodBadge" class="method-badge-lg"></span>
+          <span id="epPath" class="ep-path"></span>
+        </div>
+        <p id="epDesc" class="ep-desc"></p>
+      </div>
+
+      <div class="ep-body">
+        <!-- Params / Body -->
+        <div class="ep-section" id="paramsSection">
+          <div class="ep-section-title">Parameters</div>
+          <div id="paramsForm" class="params-form"></div>
+        </div>
+
+        <!-- Execute -->
+        <div class="ep-actions">
+          <button id="executeBtn" class="btn-execute">
+            <span class="execute-icon">▶</span> Send Request
+          </button>
+          <button id="copyCurlBtn" class="btn-sm btn-ghost">Copy cURL</button>
+          <span id="responseTime" class="response-time"></span>
+        </div>
+
+        <!-- Response -->
+        <div class="ep-section" id="responseSection" style="display:none">
+          <div class="ep-section-title">
+            Response
+            <span id="statusBadge" class="status-badge"></span>
+          </div>
+          <pre id="responseBody" class="response-pre"></pre>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
