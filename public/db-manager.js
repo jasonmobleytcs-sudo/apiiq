@@ -265,6 +265,84 @@ const DB_REGISTRY = [
       { key: 'sla_breach',      label: 'SLA Breach',         type: 'select', required: false, options: ['No','Yes'] },
       { key: 'resolution_notes',label: 'Resolution Notes',   type: 'text',   required: false, fullWidth: true },
     ]
+  },
+  {
+    id: 'zoomlly',
+    name: 'Zoomlly Jams — Customers',
+    icon: '🎵',
+    description: 'Music streaming subscribers and concert ticket holders.',
+    color: '#7c3aed',
+    api: {
+      list:    { method: 'GET',    path: '/api/zoomlly/customers' },
+      create:  { method: 'POST',   path: '/api/zoomlly/customers' },
+      update:  { method: 'PUT',    path: '/api/zoomlly/customer/:customer_id' },
+      delete:  { method: 'DELETE', path: '/api/zoomlly/customer/:customer_id' },
+      idField: 'customer_id'
+    },
+    columns: [
+      { key: 'customer_id',         label: 'Customer ID',    sortable: true, type: 'mono' },
+      { key: 'first_name',          label: 'First Name',     sortable: true },
+      { key: 'last_name',           label: 'Last Name',      sortable: true },
+      { key: 'phone',               label: 'Phone',          sortable: false },
+      { key: 'subscription_plan',   label: 'Plan',           sortable: true },
+      { key: 'subscription_status', label: 'Sub Status',     sortable: true, format: 'badge' },
+      { key: 'loyalty_tier',        label: 'Loyalty',        sortable: true, format: 'badge' },
+      { key: 'loyalty_points',      label: 'Points',         sortable: true },
+      { key: 'total_spend',         label: 'Total Spend',    sortable: true, format: 'currency' },
+      { key: 'preferred_genre',     label: 'Genre',          sortable: true },
+    ],
+    fields: [
+      { key: 'customer_id',         label: 'Customer ID',        type: 'text',   required: true,  readonlyOnEdit: true },
+      { key: 'first_name',          label: 'First Name',         type: 'text',   required: true },
+      { key: 'last_name',           label: 'Last Name',          type: 'text',   required: true },
+      { key: 'pin',                 label: 'PIN',                type: 'text',   required: true },
+      { key: 'phone',               label: 'Phone',              type: 'text',   required: true },
+      { key: 'email',               label: 'Email',              type: 'email',  required: false, fullWidth: true },
+      { key: 'address',             label: 'Address',            type: 'text',   required: false, fullWidth: true },
+      { key: 'subscription_plan',   label: 'Subscription Plan',  type: 'select', required: false, options: ['None','Basic','Premium','Ultimate','Family','Student'] },
+      { key: 'subscription_status', label: 'Sub Status',         type: 'select', required: false, options: ['Active','Paused','Cancelled','Expired'] },
+      { key: 'loyalty_tier',        label: 'Loyalty Tier',       type: 'select', required: false, options: ['Fan','Superfan','VIP','Platinum'] },
+      { key: 'preferred_genre',     label: 'Preferred Genre',    type: 'text',   required: false },
+      { key: 'account_status',      label: 'Account Status',     type: 'select', required: false, options: ['Active','Suspended','Closed'] },
+    ]
+  },
+  {
+    id: 'zjproducts',
+    name: 'Zoomlly Jams — Products',
+    icon: '🎸',
+    description: 'Concert tickets, streaming plans, merch, and bundles.',
+    color: '#b45309',
+    api: {
+      list:    { method: 'GET',    path: '/api/zoomlly/products' },
+      create:  { method: 'POST',   path: '/api/zoomlly/products' },
+      update:  { method: 'PUT',    path: '/api/zoomlly/product/:product_id' },
+      delete:  { method: 'DELETE', path: '/api/zoomlly/product/:product_id' },
+      idField: 'product_id'
+    },
+    columns: [
+      { key: 'product_id',   label: 'Product ID',  sortable: true,  type: 'mono' },
+      { key: 'product_name', label: 'Name',         sortable: true },
+      { key: 'category',     label: 'Category',     sortable: true,  format: 'badge' },
+      { key: 'price',        label: 'Price',        sortable: true,  format: 'currency' },
+      { key: 'stock_qty',    label: 'Stock',        sortable: true },
+      { key: 'event_name',   label: 'Event',        sortable: false },
+      { key: 'event_date',   label: 'Event Date',   sortable: true },
+      { key: 'venue',        label: 'Venue',        sortable: false },
+      { key: 'is_active',    label: 'Active',       sortable: true },
+    ],
+    fields: [
+      { key: 'product_id',   label: 'Product ID',   type: 'text',   required: true,  readonlyOnEdit: true },
+      { key: 'product_name', label: 'Product Name', type: 'text',   required: true,  fullWidth: true },
+      { key: 'category',     label: 'Category',     type: 'select', required: true,  options: ['Streaming','Concert Ticket','Merch','Bundle','Gift Card','Vinyl','Digital Download','VIP Package'] },
+      { key: 'description',  label: 'Description',  type: 'text',   required: false, fullWidth: true },
+      { key: 'price',        label: 'Price',        type: 'number', required: true },
+      { key: 'stock_qty',    label: 'Stock Qty',    type: 'number', required: false },
+      { key: 'event_name',   label: 'Event Name',   type: 'text',   required: false, fullWidth: true },
+      { key: 'venue',        label: 'Venue',        type: 'text',   required: false, fullWidth: true },
+      { key: 'event_date',   label: 'Event Date',   type: 'text',   required: false },
+      { key: 'sku',          label: 'SKU',          type: 'text',   required: false },
+      { key: 'is_active',    label: 'Active (1/0)', type: 'number', required: false },
+    ]
   }
 ];
 

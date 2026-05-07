@@ -11,6 +11,7 @@ const seedK12        = require('./db/seed-k12');
 const seedLegal      = require('./db/seed-legal');
 const seedRetail     = require('./db/seed-retail');
 const seedITSM       = require('./db/seed-itsm');
+const seedZoomlly    = require('./db/seed-zoomlly');
 
 const requireApiKey  = require('./middleware/auth');
 const requestLogger  = require('./middleware/logger');
@@ -23,6 +24,7 @@ const k12Router         = require('./routes/k12');
 const legalRouter       = require('./routes/legal');
 const retailRouter      = require('./routes/retail');
 const itsmRouter        = require('./routes/itsm');
+const zoomlllyRouter    = require('./routes/zoomlly');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +43,7 @@ seedK12();
 seedLegal();
 seedRetail();
 seedITSM();
+seedZoomlly();
 
 // ─── Request logger (runs before auth so it captures 401/403 too) ─────────────
 app.use(requestLogger);
@@ -64,6 +67,7 @@ app.use('/api/k12', k12Router);
 app.use('/api/legal', legalRouter);
 app.use('/api/retail', retailRouter);
 app.use('/api/itsm', itsmRouter);
+app.use('/api/zoomlly', zoomlllyRouter);
 
 // ─── Error handlers ───────────────────────────────────────────────────────────
 app.use((req, res) => {
