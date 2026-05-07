@@ -57,6 +57,10 @@ app.get('/screenpop', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/screenpop.html'));
 });
 
+app.get('/screenpop-zoomlly', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/screenpop-zoomlly.html'));
+});
+
 // ─── Protected routes (require API key) ───────────────────────────────────────
 app.use('/api', requireApiKey);
 app.use('/api/publicworks', publicWorksRouter);
