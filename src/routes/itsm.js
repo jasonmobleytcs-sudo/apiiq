@@ -77,41 +77,70 @@ router.patch('/ticket/:ticketNumber/status', (req, res) => {
   res.json({ success: true, data: updated });
 });
 
+// Generate the next sequential ticket number (TKT-NNNNN).
+// Looks at the highest existing TKT-#### value and increments.
+function nextTicketNumber() {
+  const row = db.prepare(`
+    SELECT ticket_number FROM it_tickets
+    WHERE ticket_number LIKE 'TKT-%'
+    ORDER BY CAST(SUBSTR(ticket_number, 5) AS INTEGER) DESC
+    LIMIT 1
+  `).get();
+  const lastNum = row ? parseInt(row.ticket_number.slice(4), 10) : 0;
+  const next = Number.isFinite(lastNum) ? lastNum + 1 : 1;
+  return `TKT-${String(next).padStart(5, '0')}`;
+}
+
 // Create a new ticket
 // POST /api/itsm/tickets
+// ticket_number is optional — if missing, the server generates the next TKT-#####.
 router.post('/tickets', (req, res) => {
   const { ticket_number, title, category, priority, status, requester_name, requester_email,
           requester_phone, requester_dept, assigned_to, created_date, updated_date,
           resolved_date, sla_breach, resolution_notes, asset_tag } = req.body;
 
-  if (!ticket_number || !title || !requester_name) {
-    return res.status(400).json({ success: false, message: 'ticket_number, title, and requester_name are required' });
+  if (!title || !requester_name) {
+    return res.status(400).json({ success: false, message: 'title and requester_name are required' });
   }
 
   const now = new Date().toISOString().slice(0, 10);
 
-  try {
-    const result = db.prepare(`
-      INSERT INTO it_tickets
-        (ticket_number, title, category, priority, status, requester_name, requester_email,
-         requester_phone, requester_dept, assigned_to, created_date, updated_date,
-         resolved_date, sla_breach, resolution_notes, asset_tag)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      ticket_number.toUpperCase(), title, category || 'Other', priority || 'Medium',
-      status || 'Open', requester_name, requester_email || null, requester_phone || null,
-      requester_dept || null, assigned_to || null,
-      created_date || now, updated_date || now, resolved_date || null,
-      sla_breach || 'No', resolution_notes || null, asset_tag || null
-    );
-    const created = db.prepare('SELECT * FROM it_tickets WHERE id = ?').get(result.lastInsertRowid);
-    res.status(201).json({ success: true, data: created });
-  } catch (err) {
-    if (err.message.includes('UNIQUE')) {
-      return res.status(409).json({ success: false, message: 'Ticket number already exists' });
+  // Retry once on UNIQUE collision in case two writes race for the same auto-generated number.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const finalNumber = (ticket_number && String(ticket_number).trim())
+      ? String(ticket_number).toUpperCase()
+      : nextTicketNumber();
+
+    try {
+      const result = db.prepare(`
+        INSERT INTO it_tickets
+          (ticket_number, title, category, priority, status, requester_name, requester_email,
+           requester_phone, requester_dept, assigned_to, created_date, updated_date,
+           resolved_date, sla_breach, resolution_notes, asset_tag)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        finalNumber, title, category || 'Other', priority || 'Medium',
+        status || 'Open', requester_name, requester_email || null, requester_phone || null,
+        requester_dept || null, assigned_to || null,
+        created_date || now, updated_date || now, resolved_date || null,
+        sla_breach || 'No', resolution_notes || null, asset_tag || null
+      );
+      const created = db.prepare('SELECT * FROM it_tickets WHERE id = ?').get(result.lastInsertRowid);
+      return res.status(201).json({ success: true, data: created });
+    } catch (err) {
+      if (err.message.includes('UNIQUE')) {
+        // If the caller passed an explicit number that collides, return 409.
+        if (ticket_number) {
+          return res.status(409).json({ success: false, message: 'Ticket number already exists' });
+        }
+        // Otherwise loop and re-pick the next number.
+        continue;
+      }
+      throw err;
     }
-    throw err;
   }
+
+  return res.status(500).json({ success: false, message: 'Could not allocate a unique ticket number' });
 });
 
 // Update a ticket
