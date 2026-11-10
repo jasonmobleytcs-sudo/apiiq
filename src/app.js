@@ -12,6 +12,7 @@ const seedLegal      = require('./db/seed-legal');
 const seedRetail     = require('./db/seed-retail');
 const seedITSM       = require('./db/seed-itsm');
 const seedZoomlly    = require('./db/seed-zoomlly');
+const seedWorkday    = require('./db/seed-workday');
 
 const requireApiKey  = require('./middleware/auth');
 const requestLogger  = require('./middleware/logger');
@@ -25,6 +26,7 @@ const legalRouter       = require('./routes/legal');
 const retailRouter      = require('./routes/retail');
 const itsmRouter        = require('./routes/itsm');
 const zoomlllyRouter    = require('./routes/zoomlly');
+const workdayRouter     = require('./routes/workday');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -44,6 +46,7 @@ seedLegal();
 seedRetail();
 seedITSM();
 seedZoomlly();
+seedWorkday();
 
 // ─── Request logger (runs before auth so it captures 401/403 too) ─────────────
 app.use(requestLogger);
@@ -61,6 +64,12 @@ app.get('/screenpop-zoomlly', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/screenpop-zoomlly.html'));
 });
 
+// Agent IQ panel for the Workday HCM demo. Both paths serve the same page so the
+// ZCC screen pop URL can be written either way.
+app.get(['/agentiq-workday', '/screenpop-workday'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/agentiq-workday.html'));
+});
+
 // ─── Protected routes (require API key) ───────────────────────────────────────
 app.use('/api', requireApiKey);
 app.use('/api/publicworks', publicWorksRouter);
@@ -72,6 +81,7 @@ app.use('/api/legal', legalRouter);
 app.use('/api/retail', retailRouter);
 app.use('/api/itsm', itsmRouter);
 app.use('/api/zoomlly', zoomlllyRouter);
+app.use('/api/workday', workdayRouter);
 
 // ─── Error handlers ───────────────────────────────────────────────────────────
 app.use((req, res) => {

@@ -124,6 +124,116 @@ The seed file (`seed-publicworks.js`) handles live DB migrations automatically o
 
 ---
 
+## Database: Workday HCM (`wd_workers`, `wd_time_off`, `wd_hr_cases`)
+
+Added 2026-11-10 for the **Agent IQ Workday demo**: showing a customer what a Workday
+integration looks like behind a Zoom Contact Center screen pop, without touching a real
+Workday tenant.
+
+**Fictional tenant on purpose**: Vantage Industries, `vantageind.com`. This one gets shown
+to any customer, so nothing in it should resemble a real employer's data.
+
+### Tables
+
+| Table | Rows | What it holds |
+|-------|------|---------------|
+| `wd_workers` | 22 | Worker profile: org, job, manager, location, PTO and sick balances, benefits, review |
+| `wd_time_off` | 12 | Absence requests (PTO, Sick, Bereavement, Jury Duty, Parental Leave, Unpaid) |
+| `wd_hr_cases` | 10 | HR help desk cases |
+
+Three tables because an HR service desk call is not answered from the worker record alone.
+The agent needs the pending time off and the open cases in the same pop.
+
+### Key demo records
+
+| Worker ID | Name | Mobile | Why it is interesting |
+|-----------|------|--------|----------------------|
+| 100041 | Jason Mobley | 850-217-6664 | The hero record. Active, 96.5 PTO hours, 1 pending request, 1 open benefits case |
+| 100042 | Mason Morris | 850-655-3044 | **Requests 56 PTO hours against a 24 hour balance.** Trips the shortfall alert, and his open HR case is about exactly that |
+| 100043 | Todd Anderson | 703-728-2157 | **On Leave** (parental). Trips the identity-verification notice |
+
+Phone numbers match the demo numbers already used by Public Works and ITSM, so the same
+handset drives a screen pop against any of them.
+
+### Lookup behaviour
+
+`GET /api/workday/phone/:phone` is what Agent IQ calls. It checks **mobile first, then the
+desk line**, and strips formatting, so `8502176664`, `+18502176664` and `850-217-6664` all
+resolve. It returns the worker, the full absence history, the full case history and a
+`summary` block the panel renders directly:
+
+```json
+{ "full_name": "...", "display_name": "...", "open_case_count": 1,
+  "pending_time_off": 1, "pto_balance_days": 12.1, "sick_balance_days": 6,
+  "time_off_shortfall": false }
+```
+
+`time_off_shortfall` is the one piece of derived logic: a submitted PTO request for more
+hours than the worker has. It is the single most common reason an employee calls the HR
+line, so the panel leads with it.
+
+### Endpoints
+
+```
+GET    /api/workday/workers
+GET    /api/workday/worker/:workerId          full profile + time off + cases
+GET    /api/workday/phone/:phone              screen pop lookup (ANI)
+GET    /api/workday/email/:email
+POST   /api/workday/workers
+PUT    /api/workday/worker/:workerId
+DELETE /api/workday/worker/:workerId          also clears that worker's child rows
+
+GET    /api/workday/timeoff
+GET    /api/workday/worker/:workerId/timeoff
+POST   /api/workday/timeoff                   request_id optional, auto ABS-#####
+PATCH  /api/workday/timeoff/:requestId        approve / deny / cancel
+DELETE /api/workday/timeoff/:requestId
+
+GET    /api/workday/cases
+GET    /api/workday/case/:caseNumber
+GET    /api/workday/worker/:workerId/cases
+POST   /api/workday/cases                     case_number optional, auto HR-######
+PATCH  /api/workday/case/:caseNumber
+PUT    /api/workday/case/:caseNumber
+DELETE /api/workday/case/:caseNumber
+```
+
+---
+
+## Agent IQ panel (`public/agentiq-workday.html`)
+
+Served at **`/agentiq-workday`** and **`/screenpop-workday`** (same page, both paths, so the
+ZCC screen pop URL can be written either way).
+
+**ZCC screen pop URL:**
+```
+https://apiiq-production.up.railway.app/agentiq-workday?phone=%E
+```
+
+Unlike the other screen pops this one is a **light theme**, because the real Agent IQ panel
+is embedded in the Zoom agent client, which is light. It collapses to a single column below
+860px so it reads correctly at Zoom App panel width, and expands to two columns full screen.
+
+What it shows: worker identity and chips, position, contact, an alert strip, four metric
+tiles (PTO days, sick days, pending time off, open cases), and tabs for Overview, Time Off,
+HR Cases, and Pay and Benefits.
+
+**Write-back is real.** "Open HR case" POSTs to `/api/workday/cases` and "Submit time off"
+POSTs to `/api/workday/timeoff`; both then re-read the worker and highlight the new row for
+a couple of seconds. That is the part of the demo worth showing, because it is what proves
+the integration is not a read-only veneer.
+
+**Compensation amounts are deliberately not on the panel.** Grade and benefits plan are
+enough for a service desk agent to route the call, and salary is not something that should
+sit on a screen the whole contact centre can see. Say this out loud in the demo; it lands
+well with HR buyers.
+
+**Demo bar**: a yellow strip with a phone field so a record can be popped live without
+re-dialling. Defaults to 850-217-6664 when no `phone` parameter is present, so opening the
+bare URL always lands on a populated record.
+
+---
+
 ## API Reference
 
 ### Authentication

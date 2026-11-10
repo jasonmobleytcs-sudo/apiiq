@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agent IQ — Workday HCM</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --wd-blue:    #0875e1;
+    --wd-dark:    #0b3a6f;
+    --wd-orange:  #f26a21;
+    --ink:        #11223a;
+    --ink-2:      #5b6b80;
+    --ink-3:      #8d9bad;
+    --line:       #e3e9f0;
+    --surface:    #ffffff;
+    --canvas:     #f4f7fb;
+    --green:      #10845a;
+    --green-bg:   #e6f6ef;
+    --amber:      #b45309;
+    --amber-bg:   #fef3e2;
+    --red:        #c0392b;
+    --red-bg:     #fdecea;
+    --blue-bg:    #e8f2fd;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--canvas);
+    color: var(--ink);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell { max-width: 1240px; margin: 0 auto; padding-bottom: 32px; }
+
+  /* ── Agent IQ header ── */
+  .aiq-bar {
+    background: var(--wd-dark);
+    color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; height: 56px;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .aiq-brand { display: flex; align-items: center; gap: 11px; }
+  .aiq-mark {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--wd-blue), #28a0ff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; letter-spacing: -0.5px;
+  }
+  .aiq-title { font-size: 14px; font-weight: 700; line-height: 1.15; }
+  .aiq-title span {
+    display: block; font-size: 10px; font-weight: 500;
+    color: #9dc2ea; letter-spacing: 1.1px; text-transform: uppercase;
+  }
+  .aiq-right { display: flex; align-items: center; gap: 10px; }
+  .conn {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(16,132,90,0.22); border: 1px solid rgba(52,211,153,0.45);
+    color: #8ff0c4; padding: 4px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #34d399; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+  .clock { font-size: 12px; color: #9dc2ea; font-variant-numeric: tabular-nums; }
+
+  /* ── Call strip ── */
+  .call-strip {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .call-ico {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--blue-bg); color: var(--wd-blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .call-txt { flex: 1; min-width: 170px; }
+  .call-lbl {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--ink-3);
+  }
+  .call-num { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .call-src { font-size: 12px; color: var(--ink-2); margin-top: 1px; }
+
+  /* ── Demo controls ── */
+  .demo-bar {
+    background: #fffbeb; border-bottom: 1px solid #fde68a;
+    padding: 9px 20px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+    font-size: 12px;
+  }
+  .demo-bar label { color: var(--amber); font-weight: 600; }
+  .demo-bar input {
+    font: inherit; padding: 5px 9px; border: 1px solid #fcd34d;
+    border-radius: 6px; width: 150px; background: #fff; color: var(--ink);
+  }
+  .demo-bar .hint { color: #92700e; }
+
+  /* ── Layout ── */
+  .grid {
+    display: grid; grid-template-columns: 330px 1fr;
+    gap: 18px; padding: 18px 20px;
+  }
+  .stack { display: flex; flex-direction: column; gap: 18px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; overflow: hidden;
+  }
+  .card-head {
+    padding: 11px 16px; border-bottom: 1px solid var(--line);
+    font-size: 11px; font-weight: 700; letter-spacing: 1.1px;
+    text-transform: uppercase; color: var(--ink-2);
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .card-body { padding: 16px; }
+
+  /* ── Worker identity ── */
+  .who { text-align: center; }
+  .avatar {
+    width: 66px; height: 66px; border-radius: 50%; margin: 0 auto 12px;
+    background: linear-gradient(135deg, var(--wd-blue), var(--wd-dark));
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 700;
+  }
+  .who-name { font-size: 19px; font-weight: 700; line-height: 1.25; }
+  .who-title { font-size: 13px; color: var(--ink-2); margin-top: 3px; }
+  .who-id {
+    font-size: 11px; color: var(--ink-3); margin-top: 7px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 13px; }
+  .chip {
+    font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  .chip-green { background: var(--green-bg); color: var(--green); border-color: #a7e3c8; }
+  .chip-blue  { background: var(--blue-bg);  color: var(--wd-blue); border-color: #b9d9fa; }
+  .chip-amber { background: var(--amber-bg); color: var(--amber); border-color: #f8d4a0; }
+  .chip-red   { background: var(--red-bg);   color: var(--red);   border-color: #f3b8b2; }
+  .chip-gray  { background: #eef1f5;         color: var(--ink-2); border-color: #dde3ea; }
+
+  /* ── Rows ── */
+  .row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 14px; padding: 9px 0; border-bottom: 1px solid #f0f3f7;
+  }
+  .row:last-child { border-bottom: none; }
+  .row-k {
+    font-size: 11px; color: var(--ink-3); text-transform: uppercase;
+    letter-spacing: 0.7px; flex-shrink: 0;
+  }
+  .row-v { font-size: 13px; font-weight: 600; text-align: right; }
+
+  /* ── Alerts ── */
+  .alert {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 11px 13px; border-radius: 8px; font-size: 13px; line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .alert:last-child { margin-bottom: 0; }
+  .alert-amber { background: var(--amber-bg); border: 1px solid #f8d4a0; color: #7c4a06; }
+  .alert-blue  { background: var(--blue-bg);  border: 1px solid #b9d9fa; color: #0b4a8f; }
+  .alert-green { background: var(--green-bg); border: 1px solid #a7e3c8; color: #0a5c3f; }
+  .alert b { font-weight: 700; }
+
+  /* ── Metric tiles ── */
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 14px;
+  }
+  .tile-v { font-size: 25px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
+  .tile-k {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--ink-3); margin-top: 5px;
+  }
+  .tile-s { font-size: 11px; color: var(--ink-2); margin-top: 3px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); padding: 0 16px; overflow-x: auto; }
+  .tab {
+    font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-2);
+    background: none; border: none; border-bottom: 2px solid transparent;
+    padding: 11px 13px; cursor: pointer; white-space: nowrap;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.on { color: var(--wd-blue); border-bottom-color: var(--wd-blue); }
+  .tab .count {
+    display: inline-block; margin-left: 5px; padding: 1px 6px;
+    border-radius: 10px; background: #eef1f5; color: var(--ink-2);
+    font-size: 10px; font-weight: 700;
+  }
+  .tab.on .count { background: var(--blue-bg); color: var(--wd-blue); }
+
+  /* ── Lists ── */
+  .item {
+    padding: 13px 16px; border-bottom: 1px solid #f0f3f7;
+    display: flex; gap: 13px; align-items: flex-start;
+  }
+  .item:last-child { border-bottom: none; }
+  .item.fresh { background: #f0fdf7; animation: flash 2.4s ease; }
+  @keyframes flash { 0% { background: #c9f5e0 } 100% { background: #f0fdf7 } }
+  .item-main { flex: 1; min-width: 0; }
+  .item-t { font-size: 13px; font-weight: 600; line-height: 1.4; }
+  .item-m { font-size: 12px; color: var(--ink-2); margin-top: 3px; }
+  .item-r { text-align: right; flex-shrink: 0; }
+  .empty { padding: 30px 16px; text-align: center; color: var(--ink-3); font-size: 13px; }
+
+  /* ── Buttons ── */
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 600;
+    padding: 8px 14px; border-radius: 7px; cursor: pointer;
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+  }
+  .btn:hover { background: #f7f9fc; }
+  .btn-primary { background: var(--wd-blue); border-color: var(--wd-blue); color: #fff; }
+  .btn-primary:hover { background: #0668c8; }
+  .btn-sm { font-size: 12px; padding: 5px 10px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ── Modal ── */
+  .veil {
+    position: fixed; inset: 0; background: rgba(17,34,58,0.5);
+    display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px;
+  }
+  .veil.on { display: flex; }
+  .modal {
+    background: #fff; border-radius: 12px; width: 100%; max-width: 460px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-head {
+    padding: 16px 20px; border-bottom: 1px solid var(--line);
+    font-size: 15px; font-weight: 700;
+  }
+  .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .modal-foot {
+    padding: 14px 20px; border-top: 1px solid var(--line);
+    display: flex; justify-content: flex-end; gap: 8px;
+  }
+  .field label {
+    display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.7px;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 5px;
+  }
+  .field input, .field select, .field textarea {
+    font: inherit; font-size: 13px; width: 100%; padding: 8px 10px;
+    border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--ink);
+  }
+  .field textarea { resize: vertical; min-height: 64px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── States ── */
+  .state { padding: 54px 24px; text-align: center; }
+  .state-ico { font-size: 40px; margin-bottom: 12px; opacity: 0.45; }
+  .state h2 { font-size: 17px; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; }
+  .state p { font-size: 13px; color: var(--ink-3); line-height: 1.55; }
+
+  .foot {
+    text-align: center; padding: 16px 20px; font-size: 11px; color: var(--ink-3);
+  }
+
+  /* ── Zoom agent client panel width ── */
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; padding: 14px; gap: 14px; }
+    .tiles { grid-template-columns: repeat(2, 1fr); }
+    .two { grid-template-columns: 1fr; }
+    .aiq-bar { padding: 0 14px; }
+    .clock { display: none; }
+    .call-strip { padding: 12px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="aiq-bar">
+  <div class="aiq-brand">
+    <div class="aiq-mark">IQ</div>
+    <div class="aiq-title">Agent IQ
+      <span>Workday HCM</span>
+    </div>
+  </div>
+  <div class="aiq-right">
+    <div class="clock" id="clock"></div>
+    <div class="conn"><div class="dot"></div> <span id="connLabel">Connected</span></div>
+  </div>
+</div>
+
+<div class="call-strip">
+  <div class="call-ico">&#128222;</div>
+  <div class="call-txt">
+    <div class="call-lbl">Inbound call</div>
+    <div class="call-num" id="callNum">...</div>
+    <div class="call-src" id="callSrc">Matching caller ID against Workday</div>
+  </div>
+  <div class="call-src" id="callTime"></div>
+</div>
+
+<div class="demo-bar">
+  <label for="demoPhone">Demo lookup</label>
+  <input id="demoPhone" type="tel" placeholder="850-217-6664" />
+  <button class="btn btn-sm btn-primary" id="demoGo">Pop record</button>
+  <span class="hint" id="demoHint">Try 850-217-6664, 850-655-3044 or 703-728-2157</span>
+</div>
+
+<div class="shell">
+  <div id="root"></div>
+  <div class="foot">
+    Agent IQ by Total Communication Solutions &nbsp;&middot;&nbsp;
+    Workday data served by API IQ &nbsp;&middot;&nbsp;
+    Demonstration tenant, not connected to a live Workday environment
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="veil" id="veil">
+  <div class="modal">
+    <div class="modal-head" id="modalHead">Action</div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot">
+      <button class="btn" id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" id="modalSave">Submit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────────────
+   Agent IQ panel for the Workday HCM demo.
+
+   Everything on screen comes from the API IQ Workday database over REST. The
+   panel does exactly what a production Agent IQ instance does: take the caller
+   ID from the ZCC screen pop URL, look the worker up, and offer write-back
+   actions that post straight back into the system of record.
+
+   Screen pop URL to configure in ZCC:
+     https://apiiq-production.up.railway.app/agentiq-workday?phone=%E
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const API_KEY  = 'cef44c87-ac22-49e5-9edc-5f3205186e58';
+const DEFAULT_PHONE = '8502176664';   // Jason Mobley, the demo record
+
+let profile  = null;   // { worker, time_off, hr_cases, summary }
+let activeTab = 'profile';
+let freshIds  = new Set();   // rows written during this call, highlighted briefly
+
+/* ── Clock ── */
+function tick() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+tick(); setInterval(tick, 1000);
+
+document.getElementById('callTime').textContent =
+  new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+/* ── Helpers ── */
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function fmtPhone(raw) {
+  const d = String(raw || '').replace(/\D/g, '');
+  const n = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
+  return n.length === 10 ? `(${n.slice(0,3)}) ${n.slice(3,6)}-${n.slice(6)}` : (raw || '');
+}
+function initials(f, l) {
+  return ((f || '')[0] || '') + ((l || '')[0] || '');
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const [y, m, day] = String(d).split('-');
+  if (!y || !m || !day) return d;
+  return new Date(+y, +m - 1, +day)
+    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function dateRange(a, b) {
+  return a === b ? fmtDate(a) : `${fmtDate(a)} to ${fmtDate(b)}`;
+}
+function api(path, opts) {
+  const sep = path.includes('?') ? '&' : '?';
+  return fetch(`${path}${sep}api_key=${API_KEY}`, Object.assign(
+    { headers: { 'Content-Type': 'application/json' } }, opts || {}));
+}
+
+/* ── Status to chip class ── */
+const CASE_CHIP = {
+  'New': 'chip-red', 'In Progress': 'chip-amber', 'Pending Employee': 'chip-amber',
+  'Resolved': 'chip-green', 'Closed': 'chip-gray',
+};
+const ABS_CHIP = {
+  'Submitted': 'chip-amber', 'Approved': 'chip-green',
+  'Denied': 'chip-red', 'Cancelled': 'chip-gray',
+};
+
+/* ── Caller ID from the screen pop ── */
+const params   = new URLSearchParams(location.search);
+const rawPhone = params.get('phone') || params.get('ani') || DEFAULT_PHONE;
+
+function normalise(p) {
+  let d = String(p || '').replace(/\D/g, '');
+  if (d.length === 11 && d[0] === '1') d = d.slice(1);
+  return d;
+}
+
+/* ── Load ── */
+async function load(phoneRaw) {
+  const phone = normalise(phoneRaw);
+  document.getElementById('callNum').textContent = fmtPhone(phone) || 'No caller ID';
+  document.getElementById('demoPhone').value = fmtPhone(phone);
+  freshIds = new Set();
+
+  if (phone.length !== 10) {
+    renderState('&#9888;', 'No usable caller ID',
+      'Agent IQ could not read a ten digit number from the screen pop.');
+    return;
+  }
+
+  renderState('&#128269;', 'Looking up worker', `Searching Workday for ${esc(fmtPhone(phone))}`);
+
+  try {
+    const res = await api(`/api/workday/phone/${phone}`);
+    if (res.status === 404) {
+      document.getElementById('callSrc').textContent = 'No Workday worker matched this number';
+      renderState('&#128100;', 'No worker record found',
+        `${esc(fmtPhone(phone))} does not match a mobile or desk number in the Workday tenant. ` +
+        'The caller may be an applicant, a former employee or calling from a personal line that is not on file.');
+      return;
+    }
+    if (!res.ok) throw new Error('Workday lookup returned ' + res.status);
+
+    const json = await res.json();
+    profile = json.data;
+    render();
+  } catch (e) {
+    document.getElementById('connLabel').textContent = 'Error';
+    renderState('&#9888;', 'Lookup failed', esc(e.message));
+  }
+}
+
+function renderState(icon, title, body) {
+  document.getElementById('root').innerHTML =
+    `<div class="grid" style="grid-template-columns:1fr">
+       <div class="card"><div class="state">
+         <div class="state-ico">${icon}</div><h2>${title}</h2><p>${body}</p>
+       </div></div>
+     </div>`;
+}
+
+/* ── Render ── */
+function render() {
+  const w = profile.worker, s = profile.summary;
+
+  document.getElementById('callSrc').textContent =
+    `Identified as ${s.display_name}, worker ${w.worker_id}`;
+
+  const statusChip = w.employment_status === 'Active' ? 'chip-green'
+                   : w.employment_status === 'On Leave' ? 'chip-amber' : 'chip-gray';
+
+  document.getElementById('root').innerHTML = `
+    <div class="grid">
+      <div class="stack">
+        <div class="card">
+          <div class="card-head">Worker</div>
+          <div class="card-body who">
+            <div class="avatar">${esc(initials(w.legal_first_name, w.legal_last_name))}</div>
+            <div class="who-name">${esc(s.display_name)}</div>
+            <div class="who-title">${esc(w.business_title || '')}</div>
+            <div class="who-id">Worker ID ${esc(w.worker_id)} &middot; ${esc(w.employee_id || '')}</div>
+            <div class="chips">
+              <span class="chip ${statusChip}">${esc(w.employment_status)}</span>
+              <span class="chip chip-blue">${esc(w.worker_type)}</span>
+              <span class="chip chip-gray">${esc(w.time_type)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Position</div>
+          <div class="card-body">
+            <div class="row"><span class="row-k">Job profile</span><span class="row-v">${esc(w.job_profile || '')}</span></div>
+            <div class="row"><span class="row-k">Org</span><span class="row-v">${esc(w.supervisory_org || '')}</span></div>
+            <div class="row"><span class="row-k">Department</span><span class="row-v">${esc(w.department || '')}</span></div>
+            <div class="row"><span class="row-k">Manager</span><span class="row-v">${esc(w.manager_name || 'None')}</span></div>
+            <div class="row"><span class="row-k">Location</span><span class="row-v">${esc(w.location || '')}</span></div>
+            <div class="row"><span class="row-k">Cost center</span><span class="row-v">${esc(w.cost_center || '')}</span></div>
+            <div class="row"><span class="row-k">Hired</span><span class="row-v">${esc(fmtDate(w.hire_date))}</span></div>
+            <div class="row"><span class="row-k">Service</span><span class="row-v">${esc(w.length_of_service || '')}</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Contact</div>
+          <div class="card-body">
+            <div class="row"><span class="row-k">Mobile</span><span class="row-v">${esc(fmtPhone(w.mobile_phone))}</span></div>
+            <div class="row"><span class="row-k">Desk</span><span class="row-v">${esc(fmtPhone(w.work_phone))}</span></div>
+            <div class="row"><span class="row-k">Email</span><span class="row-v" style="font-size:12px">${esc(w.work_email || '')}</span></div>
+            <div class="row"><span class="row-k">Emergency</span><span class="row-v" style="font-size:12px">${esc(w.emergency_contact_name || 'Not on file')}<br><span style="font-weight:500;color:var(--ink-2)">${esc(fmtPhone(w.emergency_contact_phone))}</span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stack">
+        ${renderAlerts()}
+
+        <div class="tiles">
+          <div class="tile">
+            <div class="tile-v" style="color:var(--wd-blue)">${s.pto_balance_days}</div>
+            <div class="tile-k">PTO days</div>
+            <div class="tile-s">${w.pto_balance_hours} hours</div>
+          </div>
+          <div class="tile">
+            <div class="tile-v" style="color:var(--ink)">${s.sick_balance_days}</div>
+            <div class="tile-k">Sick days</div>
+            <div class="tile-s">${w.sick_balance_hours} hours</div>
+          </div>
+          <div class="tile">
+            <div class="tile-v" style="color:${s.pending_time_off ? 'var(--amber)' : 'var(--green)'}">${s.pending_time_off}</div>
+            <div class="tile-k">Pending time off</div>
+            <div class="tile-s">Awaiting approval</div>
+          </div>
+          <div class="tile">
+            <div class="tile-v" style="color:${s.open_case_count ? 'var(--amber)' : 'var(--green)'}">${s.open_case_count}</div>
+            <div class="tile-k">Open HR cases</div>
+            <div class="tile-s">${profile.hr_cases.length} lifetime</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="tabs">
+            <button class="tab ${activeTab === 'profile' ? 'on' : ''}" data-tab="profile">Overview</button>
+            <button class="tab ${activeTab === 'timeoff' ? 'on' : ''}" data-tab="timeoff">Time Off<span class="count">${profile.time_off.length}</span></button>
+            <button class="tab ${activeTab === 'cases'   ? 'on' : ''}" data-tab="cases">HR Cases<span class="count">${profile.hr_cases.length}</span></button>
+            <button class="tab ${activeTab === 'pay'     ? 'on' : ''}" data-tab="pay">Pay and Benefits</button>
+          </div>
+          <div id="tabBody">${renderTab()}</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Agent actions
+            <span style="font-weight:500;text-transform:none;letter-spacing:0;font-size:11px">Writes back to Workday</span>
+          </div>
+          <div class="card-body actions">
+            <button class="btn btn-primary" id="actCase">Open HR case</button>
+            <button class="btn" id="actTime">Submit time off</button>
+            <button class="btn" id="actRefresh">Refresh from Workday</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  document.querySelectorAll('.tab').forEach(b =>
+    b.addEventListener('click', () => {
+      activeTab = b.dataset.tab;
+      document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.tab === activeTab));
+      document.getElementById('tabBody').innerHTML = renderTab();
+    }));
+
+  document.getElementById('actCase').addEventListener('click', openCaseModal);
+  document.getElementById('actTime').addEventListener('click', openTimeModal);
+  document.getElementById('actRefresh').addEventListener('click', () => load(profile.worker.mobile_phone));
+}
+
+function renderAlerts() {
+  const s = profile.summary, w = profile.worker;
+  const out = [];
+
+  if (s.time_off_shortfall) {
+    const req = profile.time_off.find(t => t.status === 'Submitted' && t.absence_type === 'PTO' && t.hours > w.pto_balance_hours);
+    out.push(`<div class="alert alert-amber">&#9888;
+      <div><b>Time off request exceeds the balance.</b>
+      ${esc(req.request_id)} asks for ${req.hours} hours of PTO against a balance of ${w.pto_balance_hours} hours.
+      Likely the reason for the call.</div></div>`);
+  }
+  if (w.employment_status === 'On Leave') {
+    out.push(`<div class="alert alert-blue">&#8505;
+      <div><b>Worker is currently on leave.</b>
+      Confirm identity before discussing pay or benefits changes.</div></div>`);
+  }
+  if (s.open_case_count > 0) {
+    const open = profile.hr_cases.filter(c => !['Resolved','Closed'].includes(c.status));
+    out.push(`<div class="alert alert-blue">&#128203;
+      <div><b>${s.open_case_count} open HR ${s.open_case_count === 1 ? 'case' : 'cases'}:</b>
+      ${open.map(c => esc(c.case_number) + ', ' + esc(c.subject)).join('<br>')}</div></div>`);
+  }
+  if (!out.length) {
+    out.push(`<div class="alert alert-green">&#10003;
+      <div><b>Nothing outstanding.</b> No open cases and no pending time off for this worker.</div></div>`);
+  }
+  return `<div class="card"><div class="card-body" style="padding:14px">${out.join('')}</div></div>`;
+}
+
+function renderTab() {
+  const w = profile.worker;
+
+  if (activeTab === 'timeoff') {
+    if (!profile.time_off.length) return `<div class="empty">No absence requests on file.</div>`;
+    return profile.time_off.map(t => `
+      <div class="item ${freshIds.has(t.request_id) ? 'fresh' : ''}">
+        <div class="item-main">
+          <div class="item-t">${esc(t.absence_type)} &middot; ${t.hours} hours</div>
+          <div class="item-m">${esc(dateRange(t.start_date, t.end_date))}
+            ${t.comment ? ' &middot; ' + esc(t.comment) : ''}</div>
+          <div class="item-m" style="color:var(--ink-3)">${esc(t.request_id)}
+            ${t.approved_by ? ' &middot; ' + esc(t.approved_by) : ''}</div>
+        </div>
+        <div class="item-r"><span class="chip ${ABS_CHIP[t.status] || 'chip-gray'}">${esc(t.status)}</span></div>
+      </div>`).join('');
+  }
+
+  if (activeTab === 'cases') {
+    if (!profile.hr_cases.length) return `<div class="empty">No HR cases on file.</div>`;
+    return profile.hr_cases.map(c => `
+      <div class="item ${freshIds.has(c.case_number) ? 'fresh' : ''}">
+        <div class="item-main">
+          <div class="item-t">${esc(c.subject)}</div>
+          <div class="item-m">${esc(c.category)} &middot; ${esc(c.priority)} priority
+            &middot; opened ${esc(fmtDate(c.opened_date))}</div>
+          <div class="item-m" style="color:var(--ink-3)">${esc(c.case_number)}
+            ${c.assigned_to ? ' &middot; ' + esc(c.assigned_to) : ' &middot; unassigned'}</div>
+          ${c.resolution ? `<div class="item-m" style="margin-top:5px;color:var(--green)">${esc(c.resolution)}</div>` : ''}
+        </div>
+        <div class="item-r"><span class="chip ${CASE_CHIP[c.status] || 'chip-gray'}">${esc(c.status)}</span></div>
+      </div>`).join('');
+  }
+
+  if (activeTab === 'pay') {
+    return `<div class="card-body">
+      <div class="row"><span class="row-k">Pay rate type</span><span class="row-v">${esc(w.pay_rate_type || '')}</span></div>
+      <div class="row"><span class="row-k">Pay group</span><span class="row-v">${esc(w.pay_group || '')}</span></div>
+      <div class="row"><span class="row-k">Comp grade</span><span class="row-v">${esc(w.compensation_grade || '')}</span></div>
+      <div class="row"><span class="row-k">Benefits</span><span class="row-v">${esc(w.benefits_plan || '')}</span></div>
+      <div class="row"><span class="row-k">Retirement</span><span class="row-v">${esc(w.retirement_enrolled)}</span></div>
+      <div class="row"><span class="row-k">PTO taken YTD</span><span class="row-v">${w.pto_taken_ytd} hours</span></div>
+      <div class="row"><span class="row-k">Last review</span><span class="row-v">${esc(w.last_review_rating || 'None on file')}</span></div>
+      <div class="row"><span class="row-k">Next review</span><span class="row-v">${esc(fmtDate(w.next_review_date)) || 'Not scheduled'}</span></div>
+      <p style="margin-top:14px;font-size:12px;color:var(--ink-3);line-height:1.55">
+        Compensation amounts are deliberately excluded from the agent view. Agent IQ shows the
+        grade and plan so the agent can route the call, and nothing a service desk agent
+        should not see.</p>
+    </div>`;
+  }
+
+  // Overview
+  return `<div class="card-body">
+    <div class="row"><span class="row-k">Management level</span><span class="row-v">${esc(w.management_level || '')}</span></div>
+    <div class="row"><span class="row-k">Job family</span><span class="row-v">${esc(w.job_family || '')}</span></div>
+    <div class="row"><span class="row-k">Worker type</span><span class="row-v">${esc(w.worker_type)}</span></div>
+    <div class="row"><span class="row-k">Time type</span><span class="row-v">${esc(w.time_type)}</span></div>
+    <div class="row"><span class="row-k">PTO balance</span><span class="row-v">${w.pto_balance_hours} hours (${profile.summary.pto_balance_days} days)</span></div>
+    <div class="row"><span class="row-k">Sick balance</span><span class="row-v">${w.sick_balance_hours} hours (${profile.summary.sick_balance_days} days)</span></div>
+    <div class="row"><span class="row-k">Benefits plan</span><span class="row-v">${esc(w.benefits_plan || '')}</span></div>
+    <div class="row"><span class="row-k">Manager</span><span class="row-v">${esc(w.manager_name || 'None')}${w.manager_worker_id ? ' (' + esc(w.manager_worker_id) + ')' : ''}</span></div>
+  </div>`;
+}
+
+/* ── Write-back modals ── */
+const veil = document.getElementById('veil');
+let onSave = null;
+
+function showModal(title, bodyHtml, saveLabel, handler) {
+  document.getElementById('modalHead').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  document.getElementById('modalSave').textContent = saveLabel;
+  onSave = handler;
+  veil.classList.add('on');
+}
+function closeModal() { veil.classList.remove('on'); onSave = null; }
+
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+veil.addEventListener('click', e => { if (e.target === veil) closeModal(); });
+document.getElementById('modalSave').addEventListener('click', async () => {
+  if (!onSave) return;
+  const btn = document.getElementById('modalSave');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try { await onSave(); } finally { btn.disabled = false; }
+});
+
+function openCaseModal() {
+  showModal('Open HR case', `
+    <div class="field"><label for="cSubject">Subject</label>
+      <input id="cSubject" placeholder="Short description of the request" /></div>
+    <div class="two">
+      <div class="field"><label for="cCat">Category</label>
+        <select id="cCat">
+          <option>Benefits</option><option>Payroll</option><option>Time Off</option>
+          <option>Personal Info</option><option>Job Change</option><option>Onboarding</option>
+          <option>Policy</option><option>Other</option>
+        </select></div>
+      <div class="field"><label for="cPri">Priority</label>
+        <select id="cPri"><option>Low</option><option selected>Medium</option><option>High</option></select></div>
+    </div>
+    <div class="field"><label for="cNotes">Agent notes</label>
+      <textarea id="cNotes" placeholder="What the employee asked for on this call"></textarea></div>`,
+    'Create case', async () => {
+      const subject = document.getElementById('cSubject').value.trim();
+      if (!subject) { document.getElementById('cSubject').focus(); return; }
+
+      const res = await api('/api/workday/cases', {
+        method: 'POST',
+        body: JSON.stringify({
+          worker_id: profile.worker.worker_id,
+          subject,
+          category: document.getElementById('cCat').value,
+          priority: document.getElementById('cPri').value,
+          status: 'New',
+          resolution: document.getElementById('cNotes').value.trim() || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) { alert(json.message || 'Could not create the case'); return; }
+
+      freshIds.add(json.data.case_number);
+      closeModal();
+      await reload('cases');
+    });
+}
+
+function openTimeModal() {
+  const today = new Date().toISOString().slice(0, 10);
+  showModal('Submit time off', `
+    <div class="field"><label for="tType">Absence type</label>
+      <select id="tType">
+        <option>PTO</option><option>Sick</option><option>Bereavement</option>
+        <option>Jury Duty</option><option>Parental Leave</option><option>Unpaid</option>
+      </select></div>
+    <div class="two">
+      <div class="field"><label for="tStart">Start date</label><input id="tStart" type="date" value="${today}" /></div>
+      <div class="field"><label for="tEnd">End date</label><input id="tEnd" type="date" value="${today}" /></div>
+    </div>
+    <div class="field"><label for="tHours">Hours</label><input id="tHours" type="number" min="1" step="1" value="8" /></div>
+    <div class="field"><label for="tComment">Comment</label>
+      <input id="tComment" placeholder="Optional note for the approver" /></div>`,
+    'Submit request', async () => {
+      const res = await api('/api/workday/timeoff', {
+        method: 'POST',
+        body: JSON.stringify({
+          worker_id:    profile.worker.worker_id,
+          absence_type: document.getElementById('tType').value,
+          start_date:   document.getElementById('tStart').value,
+          end_date:     document.getElementById('tEnd').value,
+          hours:        parseFloat(document.getElementById('tHours').value) || 8,
+          comment:      document.getElementById('tComment').value.trim() || null,
+          status:       'Submitted',
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) { alert(json.message || 'Could not submit the request'); return; }
+
+      freshIds.add(json.data.request_id);
+      closeModal();
+      await reload('timeoff');
+    });
+}
+
+// Re-reads the worker from Workday after a write, keeping the fresh-row highlight.
+async function reload(tab) {
+  const res  = await api(`/api/workday/worker/${profile.worker.worker_id}`);
+  const json = await res.json();
+  profile = json.data;
+  if (tab) activeTab = tab;
+  render();
+}
+
+/* ── Demo bar ── */
+document.getElementById('demoGo').addEventListener('click', () =>
+  load(document.getElementById('demoPhone').value));
+document.getElementById('demoPhone').addEventListener('keydown', e => {
+  if (e.key === 'Enter') load(e.target.value);
+});
+
+load(rawPhone);
+</script>
+</body>
+</html>
