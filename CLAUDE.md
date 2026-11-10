@@ -24,9 +24,23 @@ It is **not a prototype** — it is a fully working REST API with a polished fro
 | **Admin API Key** | `cef44c87-ac22-49e5-9edc-5f3205186e58` |
 | **DB path on Railway** | `/data/apiiq.db` (persistent volume — survives restarts) |
 | **Deploy method** | Push to `main` → Railway auto-deploys via GitHub |
+| **Railway source** | `jasonmobleytcs-sudo/apiiq`, branch `main` |
+| **Build volume** | `/data` stays mounted across deploys, so the SQLite DB survives |
 
 To deploy: `git push` — Railway picks it up automatically.  
 To deploy manually: `railway up --detach` (must run `railway service apiiq` first to link).
+
+**GitHub source was reconnected 2026-11-10.** It had come adrift at some point: the service
+had no source attached and the last deploy was 13 May, so pushes to `main` were silently
+doing nothing and the only way to ship was `railway up`. If a push stops deploying again,
+check `get-service-config` for a `source` block before assuming the build failed.
+
+**Seeds are idempotent, so a deploy never clobbers the volume.** Each `seed-*.js` returns
+early when its table already has rows, which is why a new database can be added and
+deployed without touching the 44 Public Works residents or anything else already on `/data`.
+
+**`railway.json` config-as-code is deprecated** and stops working **2026-12-01**. Run
+`railway config migrate` to move to `.railway/railway.ts` before then.
 
 ---
 
